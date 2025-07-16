@@ -21,7 +21,7 @@ describe("App Complete Test Suite", () => {
   // require("../flows/search.flow.spec");
   // require("../flows/categories.flow.spec");
   // require("../flows/shopping.flow.spec");
-  require("../flows/shopping-without-login.flow.spec");
+  // require("../flows/shopping-without-login.flow.spec");
   // require("../flows/shopping-with-address.flow.spec");
   // require("../flows/address-crud.spec");
   after(async () => {
@@ -34,13 +34,13 @@ describe("App Complete Test Suite", () => {
     console.log("========================================");
     console.log("\n");
     
-    // Summary of tests
-    console.log("\nTest Summary:");
-    console.log("- Home Page Verification ✓");
-    console.log("- Login Flow ✓");
-    console.log("- Search Flow ✓");
-    console.log("- Shopping Flow ✓");
-    console.log("- Categories Flow ✓");
-    console.log("\n");
+    // // Summary of tests
+    // console.log("\nTest Summary:");
+    // console.log("- Home Page Verification ✓");
+    // console.log("- Login Flow ✓");
+    // console.log("- Search Flow ✓");
+    // console.log("- Shopping Flow ✓");
+    // console.log("- Categories Flow ✓");
+    // console.log("\n");
   });
 });

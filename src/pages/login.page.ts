@@ -1,284 +1,135 @@
 import { BasePage } from './base.page';
 import { browser } from '@wdio/globals';
+import { TestHelpers } from '../utils/test-helpers';
 
 export class LoginPage extends BasePage {
-  // Multiple selector strategies for Profile Tab
-  private get profileTab() {
-    return '//android.widget.ImageView[@content-desc="Profile Tab 4 of 4"]';
+  // Profile Icon selectors - multiple strategies
+  private get profileIcon() {
+    return '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View/android.widget.ImageView[3]';
   }
   
-  private get profileTabAlt1() {
-    // Try without Tab text
-    return '//android.widget.ImageView[@content-desc="Profile\nTab 4 of 4"]';
+  private get profileIconByUiSelector() {
+    return 'android=new UiSelector().className("android.widget.ImageView").instance(2)';
   }
   
-  private get profileTabAlt2() {
-    // Try with accessibility id
-    return '~Profile\nTab 4 of 4';
-  }
-  
-  private get profileTabAlt3() {
-    // Try partial match
-    return '//*[contains(@content-desc, "Profile") and contains(@content-desc, "Tab 4")]';
-  }
-  
-  private get profileTabAlt4() {
-    // Try by index if it's the 4th tab
-    return '(//android.widget.ImageView[contains(@content-desc, "Tab")])[4]';
+  private get profileIconAlternative() {
+    // Try finding by position in navigation bar
+    return '(//android.view.View[1]/android.view.View/android.widget.ImageView)[3]';
   }
 
-  // Multiple selector strategies for Home Tab
-  private get homeTab() {
-    return '//android.widget.ImageView[@content-desc="Home Tab 1 of 4"]';
-  }
-  
-  private get homeTabAlt1() {
-    return '//android.widget.ImageView[@content-desc="Home\nTab 1 of 4"]';
-  }
-  
-  private get homeTabAlt2() {
-    return '~Home\nTab 1 of 4';
-  }
-
-  private get cancelButton() {
+  // Google Phone Picker Cancel button
+  private get googlePhonePickerCancel() {
     return '//android.widget.ImageView[@content-desc="Cancel"]';
   }
+  
+  private get googlePhonePickerCancelById() {
+    return 'android=new UiSelector().resourceId("com.google.android.gms:id/cancel")';
+  }
+  
+  private get googlePhonePickerCancelByAccessibility() {
+    return '~Cancel';
+  }
 
+  // Phone number input
   private get mobileNumberInput() {
     return '//android.widget.EditText';
   }
+  
+  private get mobileNumberInputByClass() {
+    return 'android=new UiSelector().className("android.widget.EditText")';
+  }
 
+  // Send OTP button
   private get sendOTPButton() {
     return '//android.widget.Button[@content-desc="Send OTP"]';
   }
+  
+  private get sendOTPButtonByAccessibility() {
+    return '~Send OTP';
+  }
+  
+  private get sendOTPButtonByUiSelector() {
+    return 'android=new UiSelector().description("Send OTP")';
+  }
 
+  // OTP input (same as mobile input)
   private get otpInput() {
     return '//android.widget.EditText';
   }
 
-  private get verifyButton() {
-    return '//android.widget.Button[@content-desc="Verify & Proceed"]';
+  // Location selectors
+  private get currentLocationWidget() {
+    return '//android.widget.ImageView[contains(@content-desc, "Current") and contains(@content-desc, "Deliver in")]';
+  }
+  
+  private get locationNotServing() {
+    return '//*[contains(@text, "Not Serving") or contains(@content-desc, "Not Serving")]';
+  }
+  
+  private get tryAnotherLocationButton() {
+    return '//android.widget.Button[@content-desc="Try Another Location" or @text="Try Another Location"]';
   }
 
-  // Helper method to find profile tab with multiple strategies
-  private async findProfileTab() {
+  // Address selection
+  private get homeAddressOption() {
+    return '//android.view.View[@content-desc="HOME 31, Raebareli, Uttar Pradesh, 229010"]';
+  }
+  
+  private get homeAddressAlternative() {
+    return '//android.view.View[contains(@content-desc, "HOME") and contains(@content-desc, "Raebareli")]';
+  }
+  
+  private get homeAddressText() {
+    return '//*[contains(@content-desc, "HOME") and contains(@content-desc, "31, Raebareli")]';
+  }
+
+  // Verification elements
+  private get exploreTopCategories() {
+    return '//android.view.View[@content-desc="Explore Top Categories Top Products"]';
+  }
+  
+  private get exploreTopCategoriesAlternative() {
+    return '//android.view.View[contains(@content-desc, "Explore Top Categories")]';
+  }
+
+  // Debug helper
+  private async debugCurrentScreen() {
+    console.log("\n=== DEBUG: Current Screen Analysis ===");
+    try {
+      // Get all ImageViews
+      const imageViews = await $$('//android.widget.ImageView');
+      console.log(`Found ${await imageViews.length} ImageView elements`);
+      
+      // Check for profile-related elements
+      const profileElements = await $$('//android.widget.ImageView[position()>=2 and position()<=4]');
+      for (let i = 0; i < Math.min(await profileElements.length, 3); i++) {
+        const element = profileElements[i];
+        const bounds = await element.getAttribute('bounds');
+        console.log(`ImageView[${i + 2}] bounds: ${bounds}`);
+      }
+    } catch (error) {
+      console.error("Debug error:", error);
+    }
+    console.log("=== END DEBUG ===\n");
+  }
+
+  // Step 1: Click Profile Icon
+  async clickProfileIcon(): Promise<boolean> {
+    console.log("\nStep 1: Clicking Profile Icon...");
+    await browser.pause(2000);
+    
     const selectors = [
-      this.profileTab,
-      this.profileTabAlt1,
-      this.profileTabAlt2,
-      this.profileTabAlt3,
-      this.profileTabAlt4
+      this.profileIcon,
+      this.profileIconByUiSelector,
+      this.profileIconAlternative
     ];
     
     for (const selector of selectors) {
       try {
         const element = await $(selector);
         if (await element.isExisting()) {
-          console.log(`✓ Found Profile tab using selector: ${selector}`);
-          return element;
-        }
-      } catch (e) {
-        // Continue to next selector
-      }
-    }
-    
-    // If nothing found, log current page structure
-    console.log("Could not find Profile tab. Let me check what's on screen...");
-    await this.debugPageStructure();
-    throw new Error("Profile tab not found with any selector strategy");
-  }
-  
-  // Debug helper to understand page structure
-  private async debugPageStructure() {
-    try {
-      // Find all ImageViews with content-desc
-      const imageViews = await $$('//android.widget.ImageView[@content-desc]');
-      console.log(`Found ${imageViews.length} ImageViews with content-desc`);
-      
-      let count = 0;
-      for (const imageView of imageViews) {
-        if (count >= 10) break;
-        const contentDesc = await imageView.getAttribute('content-desc');
-        console.log(`ImageView[${count}] content-desc: "${contentDesc}"`);
-        count++;
-      }
-      
-      // Find all elements with "Tab" in content-desc
-      const tabElements = await $$('//*[contains(@content-desc, "Tab")]');
-      console.log(`\nFound ${tabElements.length} elements with "Tab" in content-desc`);
-      
-      count = 0;
-      for (const tabElement of tabElements) {
-        if (count >= 5) break;
-        const contentDesc = await tabElement.getAttribute('content-desc');
-        const tagName = await tabElement.getTagName();
-        console.log(`Tab[${count}] ${tagName}: "${contentDesc}"`);
-        count++;
-      }
-    } catch (error) {
-      console.log("Error during debug:", error);
-    }
-  }
-
-  // Step 1 - Updated with better error handling
-  async navigateToProfile() {
-    console.log("Step 1: Navigating to Profile tab...");
-    await browser.pause(3000);
-    
-    try {
-      const profileElement = await this.findProfileTab();
-      await profileElement.click();
-      console.log("✓ Profile tab clicked");
-      await browser.pause(3000);
-    } catch (error) {
-      console.error("Failed to click Profile tab:", error);
-      await this.takeScreenshot('profile-tab-not-found');
-      throw error;
-    }
-  }
-
-  // Step 2
-  async cancelMobileNumberPrompt() {
-    console.log("Step 2: Checking for mobile number prompt...");
-    await browser.pause(2000);
-    const exists = await this.isElementExisting(this.cancelButton);
-    if (exists) {
-      console.log("✓ Found cancel button, clicking it...");
-      await this.clickElement(this.cancelButton);
-      await browser.pause(2000);
-    } else {
-      console.log("✓ No cancel button found, proceeding...");
-    }
-  }
-
-  // Step 3 - Professional approach with setValue
-  async enterMobileNumber(mobileNumber: string) {
-    console.log(`Step 3: Entering mobile number: ${mobileNumber}`);
-
-    if (!mobileNumber || mobileNumber.length !== 10) {
-      throw new Error("❌ Invalid mobile number. Must be exactly 10 digits.");
-    }
-
-    try {
-      const input = await this.findElement(this.mobileNumberInput);
-      await input.waitForDisplayed({ timeout: 10000 });
-      
-      // Click to focus the input field
-      await input.click();
-      await browser.pause(500); // Brief pause for keyboard to appear
-      
-      // Clear any existing value and set new value at once
-      await input.clearValue();
-      await input.setValue(mobileNumber);
-      
-      await browser.pause(500); // Brief pause to ensure value is set
-      
-      // Verify the value was entered correctly
-      let typedValue = await input.getText();
-      if (!typedValue || typedValue === '') {
-        typedValue = await input.getAttribute("text") || await input.getAttribute("value");
-      }
-      
-      console.log(`📥 Entered value: ${typedValue}`);
-      
-      if (typedValue !== mobileNumber) {
-        console.warn(`⚠️ Value mismatch. Expected: ${mobileNumber}, Got: ${typedValue}`);
-        // Try one more time with a different approach
-        await input.clearValue();
-        await browser.pause(300);
-        await input.addValue(mobileNumber);
-        await browser.pause(300);
-      }
-      
-      console.log("✅ Mobile number entered successfully");
-    } catch (error) {
-      console.error("❌ Error entering mobile number:", error);
-      throw new Error(`Failed to enter mobile number: ${error}`);
-    }
-  }
-
-  // Step 4
-  async clickSendOTP() {
-    console.log("Step 4: Clicking Send OTP button...");
-    await this.clickElement(this.sendOTPButton);
-    console.log("✓ Send OTP clicked");
-    await browser.pause(5000); // Wait for OTP screen
-  }
-
-  // Step 5 - Professional approach with setValue
-  async enterOTP(otp: string) {
-    console.log(`Step 5: Entering OTP: ${otp}`);
-
-    if (!otp || otp.length !== 6) {
-      throw new Error("❌ Invalid OTP. Must be exactly 6 digits.");
-    }
-
-    try {
-      await browser.pause(2000); // Wait for OTP screen to be ready
-
-      const otpElement = await this.findElement(this.otpInput);
-      await otpElement.waitForDisplayed({ timeout: 10000 });
-      
-      // Click to focus the input field
-      await otpElement.click();
-      await browser.pause(500); // Brief pause for keyboard
-      
-      // Clear and set OTP value at once
-      await otpElement.clearValue();
-      await otpElement.setValue(otp);
-      
-      await browser.pause(500); // Brief pause to ensure value is set
-      
-      // Verify the value was entered correctly
-      let typedValue = await otpElement.getText();
-      if (!typedValue || typedValue === '') {
-        typedValue = await otpElement.getAttribute("text") || await otpElement.getAttribute("value");
-      }
-      
-      console.log(`📥 Entered OTP: ${typedValue || '[hidden]'}`);
-      
-      console.log("✅ OTP entered successfully");
-      await this.takeScreenshot('otp-entry-success');
-      
-      // Auto-submit might happen, so wait a bit
-      await browser.pause(1000);
-      
-    } catch (error) {
-      console.error("❌ Error entering OTP:", error);
-      throw new Error(`Failed to enter OTP: ${error}`);
-    }
-  }
-
-  // Step 6 - Click Verify & Proceed if needed
-  // async clickVerifyAndProceedIfVisible() {
-  //   console.log("Step 6: Checking if Verify & Proceed button is visible...");
-  //   try {
-  //     const verifyBtn = await $(this.verifyButton);
-  //     if (await verifyBtn.isDisplayed()) {
-  //       console.log("✓ Verify & Proceed button found, clicking it...");
-  //       await verifyBtn.click();
-  //       await browser.pause(3000);
-  //     } else {
-  //       console.log("✓ Verify & Proceed button not visible (auto-submit may have occurred)");
-  //     }
-  //   } catch (error) {
-  //     console.log("✓ No Verify & Proceed button needed");
-  //   }
-  // }
-
-  // Step 7 - Updated with multiple selector strategies
-  async navigateToHome(): Promise<boolean> {
-    console.log("Step 7: Navigating back to Home tab from My Profile...");
-    await browser.pause(3000);
-    
-    const selectors = [this.homeTab, this.homeTabAlt1, this.homeTabAlt2];
-    
-    for (const selector of selectors) {
-      try {
-        const element = await $(selector);
-        if (await element.isExisting()) {
           await element.click();
-          console.log("✓ Home tab clicked");
+          console.log("✅ Profile icon clicked");
           await browser.pause(2000);
           return true;
         }
@@ -287,67 +138,302 @@ export class LoginPage extends BasePage {
       }
     }
     
-    console.error("❌ Failed to navigate to Home with any selector");
+    // If failed, debug
+    await this.debugCurrentScreen();
+    console.error("❌ Failed to find profile icon");
     return false;
   }
 
-  // Full login flow - Updated with professional input handling
-  async performLogin(mobileNumber: string, otp: string) {
-    console.log("=== Starting Login Flow ===");
-
-    try {
-      await this.navigateToProfile();
-      await this.cancelMobileNumberPrompt();
-      await this.enterMobileNumber(mobileNumber);
-      await this.clickSendOTP();
-      await this.enterOTP(otp);
-      // await this.clickVerifyAndProceedIfVisible(); // Check if button is needed
-      
-      const navigatedToHome = await this.navigateToHome();
-      if (!navigatedToHome) {
-        throw new Error("Failed to navigate to Home after login");
+  // Step 2: Cancel Google Phone Picker
+  async cancelGooglePhonePicker(): Promise<boolean> {
+    console.log("\nStep 2: Checking for Google Phone Picker...");
+    await browser.pause(2000);
+    
+    const selectors = [
+      this.googlePhonePickerCancel,
+      this.googlePhonePickerCancelById,
+      this.googlePhonePickerCancelByAccessibility
+    ];
+    
+    for (const selector of selectors) {
+      try {
+        const element = await $(selector);
+        if (await element.isExisting()) {
+          await element.click();
+          console.log("✅ Google Phone Picker cancelled");
+          await browser.pause(1500);
+          return true;
+        }
+      } catch (error) {
+        // Continue
       }
-      
-      console.log("✅ Login Flow Completed - User redirected to Home");
+    }
+    
+    console.log("ℹ️ No Google Phone Picker found (might not appear)");
+    return true; // Not an error if it doesn't appear
+  }
 
+  // Step 3: Enter Mobile Number
+  async enterMobileNumber(mobileNumber: string): Promise<boolean> {
+    console.log(`\nStep 3: Entering mobile number: ${mobileNumber}`);
+    
+    try {
+      const input = await $(this.mobileNumberInput);
+      await input.waitForDisplayed({ timeout: 5000 });
+      
+      await input.click();
+      await browser.pause(500);
+      
+      await input.clearValue();
+      await input.setValue(mobileNumber);
+      await browser.pause(500);
+      
+      console.log("✅ Mobile number entered");
+      return true;
     } catch (error) {
-      console.error("❌ Login failed:", error);
-      await this.takeScreenshot('login-failed-final');
-      throw error;
+      console.error("❌ Failed to enter mobile number:", error);
+      return false;
     }
   }
-  // Add this method to your existing LoginPage class
 
-async performCartLogin(mobileNumber: string, otp: string): Promise<boolean> {
-  console.log("\n=== Performing Login from Cart ===");
-  
-  try {
-    // Step 1: Cancel mobile number prompt (same as regular login)
-    await this.cancelMobileNumberPrompt();
+  // Step 4: Click Send OTP
+  async clickSendOTP(): Promise<boolean> {
+    console.log("\nStep 4: Clicking Send OTP...");
     
-    // Step 2: Enter mobile number (using existing method)
-    await this.enterMobileNumber(mobileNumber);
+    const selectors = [
+      this.sendOTPButton,
+      this.sendOTPButtonByAccessibility,
+      this.sendOTPButtonByUiSelector
+    ];
     
-    // Step 3: Click Send OTP (using existing method)
-    await this.clickSendOTP();
+    for (const selector of selectors) {
+      try {
+        const element = await $(selector);
+        if (await element.isExisting()) {
+          await element.click();
+          console.log("✅ Send OTP clicked");
+          await browser.pause(3000);
+          return true;
+        }
+      } catch (error) {
+        // Continue
+      }
+    }
     
-    // Step 4: Enter OTP (using existing method)
-    await this.enterOTP(otp);
-    
-    // Step 5: Wait for redirect back to cart
-    console.log("\nStep 6: Waiting for redirect back to My Cart...");
-    await browser.pause(3000); // Wait for auto-redirect to cart
-    
-    // No need to navigate to Home - it should auto-redirect to cart
-    console.log("✓ Login from cart completed - should be redirected to My Cart");
-    await this.takeScreenshot('cart-login-completed');
-    
-    return true;
-    
-  } catch (error) {
-    console.error("Cart login failed:", error);
-    await this.takeScreenshot('cart-login-error');
+    console.error("❌ Failed to click Send OTP");
     return false;
   }
-}
+
+  // Step 5: Enter OTP
+  async enterOTP(otp: string): Promise<boolean> {
+    console.log(`\nStep 5: Entering OTP: ${otp}`);
+    
+    try {
+      await browser.pause(2000); // Wait for OTP screen
+      
+      const input = await $(this.otpInput);
+      await input.waitForDisplayed({ timeout: 5000 });
+      
+      await input.click();
+      await browser.pause(500);
+      
+      await input.clearValue();
+      await input.setValue(otp);
+      await browser.pause(1000);
+      
+      console.log("✅ OTP entered");
+      console.log("ℹ️ Waiting for auto-verification...");
+      await browser.pause(3000); // Wait for auto-redirect
+      
+      return true;
+    } catch (error) {
+      console.error("❌ Failed to enter OTP:", error);
+      return false;
+    }
+  }
+
+  // Step 6: Handle Location Not Serving (if appears)
+  async handleLocationNotServing(): Promise<boolean> {
+    console.log("\nStep 6: Checking for location service availability...");
+    await browser.pause(2000);
+    
+    try {
+      // Check if "Not Serving This Location" message appears
+      const notServingElement = await $(this.locationNotServing);
+      if (await notServingElement.isExisting()) {
+        console.log("⚠️ Location not served - need to select different address");
+        
+        // Click on current location widget
+        const locationWidget = await $(this.currentLocationWidget);
+        if (await locationWidget.isExisting()) {
+          await locationWidget.click();
+          console.log("✅ Clicked on location widget");
+          await browser.pause(2000);
+          return true;
+        }
+        
+        // Alternative: Click "Try Another Location" if visible
+        const tryAnotherBtn = await $(this.tryAnotherLocationButton);
+        if (await tryAnotherBtn.isExisting()) {
+          await tryAnotherBtn.click();
+          console.log("✅ Clicked 'Try Another Location'");
+          await browser.pause(2000);
+          return true;
+        }
+      } else {
+        console.log("✅ Location is being served");
+        return true;
+      }
+    } catch (error) {
+      console.log("ℹ️ No location issues detected");
+    }
+    
+    return true;
+  }
+
+  // Step 7: Click on Current Location
+  async clickCurrentLocation(): Promise<boolean> {
+    console.log("\nStep 7: Clicking on current location...");
+    await browser.pause(1500);
+    
+    try {
+      const locationWidget = await $(this.currentLocationWidget);
+      if (await locationWidget.isExisting()) {
+        await locationWidget.click();
+        console.log("✅ Current location clicked");
+        await browser.pause(2000);
+        return true;
+      }
+    } catch (error) {
+      console.error("❌ Failed to click current location:", error);
+    }
+    
+    return false;
+  }
+
+  // Step 8: Select HOME Address
+  async selectHomeAddress(): Promise<boolean> {
+    console.log("\nStep 8: Selecting HOME address...");
+    await browser.pause(2000);
+    
+    const selectors = [
+      this.homeAddressOption,
+      this.homeAddressAlternative,
+      this.homeAddressText
+    ];
+    
+    for (const selector of selectors) {
+      try {
+        const element = await $(selector);
+        if (await element.isExisting()) {
+          await element.click();
+          console.log("✅ HOME address selected");
+          await browser.pause(3000); // Wait for redirect
+          return true;
+        }
+      } catch (error) {
+        // Continue
+      }
+    }
+    
+    console.error("❌ Failed to select HOME address");
+    return false;
+  }
+
+  // Step 9: Verify Home Page
+  async verifyHomePageAfterLogin(): Promise<boolean> {
+    console.log("\nStep 9: Verifying successful login and location selection...");
+    await browser.pause(2000);
+    
+    try {
+      const exploreElement = await $(this.exploreTopCategories);
+      const exploreAltElement = await $(this.exploreTopCategoriesAlternative);
+      
+      if (await exploreElement.isExisting() || await exploreAltElement.isExisting()) {
+        console.log("✅ 'Explore Top Categories' found - Login successful!");
+        return true;
+      }
+    } catch (error) {
+      console.error("❌ Home page verification failed:", error);
+    }
+    
+    return false;
+  }
+
+  // Complete Login Flow with Location Selection
+  async performCompleteLogin(mobileNumber: string, otp: string): Promise<boolean> {
+    console.log("\n=== Starting Complete Login Flow ===");
+    console.log("This includes: Login + Location Selection");
+    
+    try {
+      // Phase 1: Login
+      console.log("\n--- Phase 1: Login Process ---");
+      
+      // Step 1: Click Profile Icon
+      if (!await this.clickProfileIcon()) {
+        throw new Error("Failed to click profile icon");
+      }
+      await TestHelpers.takeScreenshot('01-profile-clicked');
+      
+      // Step 2: Cancel Google Phone Picker
+      await this.cancelGooglePhonePicker();
+      await TestHelpers.takeScreenshot('02-phone-picker-handled');
+      
+      // Step 3: Enter Mobile Number
+      if (!await this.enterMobileNumber(mobileNumber)) {
+        throw new Error("Failed to enter mobile number");
+      }
+      await TestHelpers.takeScreenshot('03-mobile-entered');
+      
+      // Step 4: Click Send OTP
+      if (!await this.clickSendOTP()) {
+        throw new Error("Failed to click Send OTP");
+      }
+      await TestHelpers.takeScreenshot('04-otp-sent');
+      
+      // Step 5: Enter OTP
+      if (!await this.enterOTP(otp)) {
+        throw new Error("Failed to enter OTP");
+      }
+      await TestHelpers.takeScreenshot('05-otp-entered');
+      
+      // Phase 2: Location Selection
+      console.log("\n--- Phase 2: Location Selection ---");
+      
+      // Step 6: Handle Location Not Serving (if needed)
+      await this.handleLocationNotServing();
+      
+      // Step 7: Click Current Location
+      if (!await this.clickCurrentLocation()) {
+        console.log("ℹ️ Location might already be set");
+      }
+      await TestHelpers.takeScreenshot('06-location-clicked');
+      
+      // Step 8: Select HOME Address
+      if (!await this.selectHomeAddress()) {
+        console.log("ℹ️ HOME address might already be selected");
+      }
+      await TestHelpers.takeScreenshot('07-address-selected');
+      
+      // Step 9: Verify Success
+      const success = await this.verifyHomePageAfterLogin();
+      await TestHelpers.takeScreenshot('08-login-complete');
+      
+      if (success) {
+        console.log("\n✅ ===========================================");
+        console.log("✅ LOGIN FLOW COMPLETED SUCCESSFULLY!");
+        console.log("✅ User logged in and location selected");
+        console.log("✅ ===========================================\n");
+      } else {
+        console.log("\n❌ Login flow completed but verification failed");
+      }
+      
+      return success;
+      
+    } catch (error) {
+      console.error("\n❌ Login flow failed:", error);
+      await TestHelpers.takeScreenshot('login-error');
+      return false;
+    }
+  }
 }

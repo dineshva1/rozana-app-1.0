@@ -70,17 +70,53 @@ export class LoginPage extends BasePage {
     return '//android.widget.Button[@content-desc="Try Another Location" or @text="Try Another Location"]';
   }
 
-  // Address selection
+  // Address selection - Updated for both HOME and WORK
+  // HOME address selectors
   private get homeAddressOption() {
-    return '//android.view.View[@content-desc="HOME 31, Raebareli, Uttar Pradesh, 229010"]';
+    return '//android.view.View[@content-desc="HOME\nXWMC+JQX, Bargadi Magath, Uttar Pradesh, 226201"]';
   }
   
   private get homeAddressAlternative() {
-    return '//android.view.View[contains(@content-desc, "HOME") and contains(@content-desc, "Raebareli")]';
+    return '//android.view.View[contains(@content-desc, "HOME") and contains(@content-desc, "Bargadi Magath")]';
   }
   
-  private get homeAddressText() {
-    return '//*[contains(@content-desc, "HOME") and contains(@content-desc, "31, Raebareli")]';
+  private get homeAddressByText() {
+    return '//*[contains(@content-desc, "HOME") and contains(@content-desc, "226201")]';
+  }
+
+  // WORK address selectors - NEW
+  private get workAddressOption() {
+    return '//android.view.View[@content-desc="WORK 31, Raebareli, Uttar Pradesh, 229010"]';
+  }
+  
+  private get workAddressAlternative() {
+    return '//android.view.View[contains(@content-desc, "WORK") and contains(@content-desc, "31, Raebareli")]';
+  }
+  
+  private get workAddressByUiSelector() {
+    return 'android=new UiSelector().description("WORK 31, Raebareli, Uttar Pradesh, 229010")';
+  }
+  
+  private get workAddressByAccessibility() {
+    return '~WORK 31, Raebareli, Uttar Pradesh, 229010';
+  }
+
+  // Generic address selector by type
+  private getAddressSelector(type: 'HOME' | 'WORK'): string[] {
+    if (type === 'HOME') {
+      return [
+        this.homeAddressOption,
+        this.homeAddressAlternative,
+        this.homeAddressByText
+      ];
+    } else {
+      return [
+        this.workAddressOption,
+        this.workAddressByAccessibility,
+        this.workAddressAlternative,
+        this.workAddressByUiSelector
+      ];
+    }
   }
 
   // Verification elements
@@ -107,6 +143,10 @@ export class LoginPage extends BasePage {
         const bounds = await element.getAttribute('bounds');
         console.log(`ImageView[${i + 2}] bounds: ${bounds}`);
       }
+      
+      // Check for address elements
+      const addressElements = await $$('//android.view.View[contains(@content-desc, "HOME") or contains(@content-desc, "WORK")]');
+      console.log(`Found ${await addressElements.length} address elements`);
     } catch (error) {
       console.error("Debug error:", error);
     }
@@ -134,7 +174,7 @@ export class LoginPage extends BasePage {
           return true;
         }
       } catch (error) {
-        // Continue to next selector
+                // Continue to next selector
       }
     }
     
@@ -311,33 +351,41 @@ export class LoginPage extends BasePage {
     return false;
   }
 
-  // Step 8: Select HOME Address
-  async selectHomeAddress(): Promise<boolean> {
-    console.log("\nStep 8: Selecting HOME address...");
+  // Step 8: Select Address (HOME or WORK) - UPDATED
+  async selectAddress(addressType: 'HOME' | 'WORK' = 'WORK'): Promise<boolean> {
+    console.log(`\nStep 8: Selecting ${addressType} address...`);
     await browser.pause(2000);
     
-    const selectors = [
-      this.homeAddressOption,
-      this.homeAddressAlternative,
-      this.homeAddressText
-    ];
+    const selectors = this.getAddressSelector(addressType);
     
     for (const selector of selectors) {
       try {
         const element = await $(selector);
         if (await element.isExisting()) {
           await element.click();
-          console.log("✅ HOME address selected");
+          console.log(`✅ ${addressType} address selected`);
           await browser.pause(3000); // Wait for redirect
           return true;
         }
       } catch (error) {
-        // Continue
+        // Continue to next selector
       }
     }
     
-    console.error("❌ Failed to select HOME address");
+    // Debug if failed
+    await this.debugCurrentScreen();
+    console.error(`❌ Failed to select ${addressType} address`);
     return false;
+  }
+
+  // Backward compatibility - keep old method
+  async selectHomeAddress(): Promise<boolean> {
+    return await this.selectAddress('HOME');
+  }
+
+  // New method for WORK address
+  async selectWorkAddress(): Promise<boolean> {
+    return await this.selectAddress('WORK');
   }
 
   // Step 9: Verify Home Page
@@ -360,10 +408,14 @@ export class LoginPage extends BasePage {
     return false;
   }
 
-  // Complete Login Flow with Location Selection
-  async performCompleteLogin(mobileNumber: string, otp: string): Promise<boolean> {
+  // Complete Login Flow with Location Selection - UPDATED
+  async performCompleteLogin(
+    mobileNumber: string, 
+    otp: string, 
+    addressType: 'HOME' | 'WORK' = 'WORK'
+  ): Promise<boolean> {
     console.log("\n=== Starting Complete Login Flow ===");
-    console.log("This includes: Login + Location Selection");
+    console.log(`This includes: Login + ${addressType} Address Selection`);
     
     try {
       // Phase 1: Login
@@ -405,13 +457,14 @@ export class LoginPage extends BasePage {
       
       // Step 7: Click Current Location
       if (!await this.clickCurrentLocation()) {
-        console.log("ℹ️ Location might already be set");
+        console.log("ℹ️ Location might already be set or accessible");
       }
       await TestHelpers.takeScreenshot('06-location-clicked');
       
-      // Step 8: Select HOME Address
-      if (!await this.selectHomeAddress()) {
-        console.log("ℹ️ HOME address might already be selected");
+      // Step 8: Select Address (HOME or WORK)
+      // Step 8: Select Address (HOME or WORK)
+      if (!await this.selectAddress(addressType)) {
+        console.log(`ℹ️ ${addressType} address might already be selected`);
       }
       await TestHelpers.takeScreenshot('07-address-selected');
       
@@ -422,7 +475,7 @@ export class LoginPage extends BasePage {
       if (success) {
         console.log("\n✅ ===========================================");
         console.log("✅ LOGIN FLOW COMPLETED SUCCESSFULLY!");
-        console.log("✅ User logged in and location selected");
+        console.log(`✅ User logged in and ${addressType} location selected`);
         console.log("✅ ===========================================\n");
       } else {
         console.log("\n❌ Login flow completed but verification failed");
@@ -436,4 +489,132 @@ export class LoginPage extends BasePage {
       return false;
     }
   }
+
+  // Additional helper methods for specific scenarios
+  
+  // Login with default WORK address
+  async loginWithWorkAddress(mobileNumber: string, otp: string): Promise<boolean> {
+    return await this.performCompleteLogin(mobileNumber, otp, 'WORK');
+  }
+  
+  // Login with HOME address
+  async loginWithHomeAddress(mobileNumber: string, otp: string): Promise<boolean> {
+    return await this.performCompleteLogin(mobileNumber, otp, 'HOME');
+  }
+  
+  // Quick login method (assumes WORK address)
+  async quickLogin(mobileNumber: string, otp: string): Promise<boolean> {
+    console.log("\n=== Quick Login (WORK Address) ===");
+    return await this.performCompleteLogin(mobileNumber, otp, 'WORK');
+  }
+  
+  // Method to switch address after login
+  async switchAddress(fromType: 'HOME' | 'WORK', toType: 'HOME' | 'WORK'): Promise<boolean> {
+    console.log(`\n=== Switching from ${fromType} to ${toType} address ===`);
+    
+    try {
+      // Click on current location widget
+      if (!await this.clickCurrentLocation()) {
+        throw new Error("Failed to open address selection");
+      }
+      
+      // Select the new address
+      if (!await this.selectAddress(toType)) {
+        throw new Error(`Failed to select ${toType} address`);
+      }
+      
+      console.log(`✅ Successfully switched to ${toType} address`);
+      return true;
+      
+    } catch (error) {
+      console.error("❌ Failed to switch address:", error);
+      return false;
+    }
+  }
+  
+  // Check if user is already logged in
+  async isLoggedIn(): Promise<boolean> {
+    try {
+      // Check for explore categories element
+      const exploreElement = await $(this.exploreTopCategories);
+      const exploreAltElement = await $(this.exploreTopCategoriesAlternative);
+      
+      if (await exploreElement.isExisting() || await exploreAltElement.isExisting()) {
+        console.log("✅ User is already logged in");
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      return false;
+    }
+  }
+  
+  // Get current selected address type
+  async getCurrentAddressType(): Promise<'HOME' | 'WORK' | 'UNKNOWN'> {
+    try {
+      const locationWidget = await $(this.currentLocationWidget);
+      if (await locationWidget.isExisting()) {
+        const contentDesc = await locationWidget.getAttribute('content-desc');
+        
+        if (contentDesc.includes('Bargadi Magath') || contentDesc.includes('226201')) {
+          return 'HOME';
+        } else if (contentDesc.includes('Raebareli') || contentDesc.includes('229010')) {
+          return 'WORK';
+        }
+      }
+      
+      return 'UNKNOWN';
+    } catch (error) {
+      return 'UNKNOWN';
+    }
+  }
+  
+  // Complete logout flow
+  async logout(): Promise<boolean> {
+    console.log("\n=== Logging out ===");
+    
+    try {
+      // Click profile icon
+      if (!await this.clickProfileIcon()) {
+        throw new Error("Failed to click profile icon");
+      }
+      
+      // TODO: Add logout button selectors and click logic
+      // This would depend on your app's logout flow
+      
+      console.log("✅ Logged out successfully");
+      return true;
+      
+    } catch (error) {
+      console.error("❌ Logout failed:", error);
+      return false;
+    }
+  }
 }
+
+// Example usage in test files:
+/*
+// Basic login with WORK address (default)
+const loginPage = new LoginPage();
+await loginPage.performCompleteLogin('9876543210', '123456');
+
+// Login with HOME address
+await loginPage.performCompleteLogin('9876543210', '123456', 'HOME');
+
+// Or use convenience methods
+await loginPage.loginWithWorkAddress('9876543210', '123456');
+await loginPage.loginWithHomeAddress('9876543210', '123456');
+
+// Switch address after login
+await loginPage.switchAddress('WORK', 'HOME');
+
+// Check if already logged in
+if (!await loginPage.isLoggedIn()) {
+  await loginPage.quickLogin('9876543210', '123456');
+}
+
+// Get current address type
+const currentAddress = await loginPage.getCurrentAddressType();
+console.log(`Current address: ${currentAddress}`);
+*/

@@ -36,7 +36,7 @@ describe("Address CRUD Operations with Map Drag", () => {
       console.log("✓ Clicked on location button");
       
       // Handle login
-      await loginPage.cancelMobileNumberPrompt();
+      await loginPage.cancelGooglePhonePicker();
       console.log("✓ Cancelled any existing prompt");
       
       await loginPage.enterMobileNumber(userData.validUser.mobileNumber);

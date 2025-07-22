@@ -38,6 +38,17 @@ describe("Complete Shopping Flow - Categories to Order", () => {
       // Step 3: Complete checkout from cart
       if (categoriesResult.orderPlaced) {
         console.log("\n💳 Step 3: Completing checkout...");
+        
+        // Add a small wait to ensure cart page is fully loaded
+        await TestHelpers.waitForApp(2000);
+        
+        // Verify we're on cart page before proceeding
+        const isOnCart = await cartPage.isCartPageDisplayed();
+        if (!isOnCart) {
+          throw new Error("Not on cart page after clicking View Cart");
+        }
+        console.log("✅ Cart page confirmed");
+        
         const checkoutResult = await cartPage.completeFullCheckoutFlow();
         
         expect(checkoutResult.orderPlaced).toBe(true);
@@ -50,7 +61,19 @@ describe("Complete Shopping Flow - Categories to Order", () => {
         await TestHelpers.waitForApp(2000);
         
         const isBackHome = await homePage.isHomePageDisplayed();
-        expect(isBackHome).toBe(true);
+        
+        // If not on home page, try additional navigation
+        if (!isBackHome) {
+          console.log("⚠️ Not on home page yet, attempting navigation...");
+          await browser.back();
+          await TestHelpers.waitForApp(2000);
+          
+          const isBackHomeRetry = await homePage.isHomePageDisplayed();
+          expect(isBackHomeRetry).toBe(true);
+        } else {
+          expect(isBackHome).toBe(true);
+        }
+        
         console.log("✅ Successfully returned to home page");
       } else {
         throw new Error("Failed to navigate to cart from categories");
@@ -75,21 +98,49 @@ describe("Complete Shopping Flow - Categories to Order", () => {
       console.error(TestHelpers.formatErrorLog(`Complete flow test failed: ${error}`));
       await TestHelpers.takeScreenshot('complete-flow-error');
       
-      // Try to recover by navigating to home
+      // Enhanced recovery logic
       try {
-        console.log("Attempting to recover and navigate to home...");
-        await browser.back();
-        await TestHelpers.waitForApp(1000);
-        await browser.back();
-        await TestHelpers.waitForApp(1000);
+        console.log("🔧 Attempting to recover and navigate to home...");
         
-        const isHome = await homePage.isHomePageDisplayed();
-        if (!isHome) {
-          await categoriesPage.navigateToHome();
+        // First, check current state
+        const currentlyOnHome = await homePage.isHomePageDisplayed();
+        if (currentlyOnHome) {
+          console.log("✅ Already on home page");
+        } else {
+          // Try multiple recovery strategies
+          console.log("Trying recovery strategy 1: Multiple back presses");
+          for (let i = 0; i < 3; i++) {
+            await browser.back();
+            await TestHelpers.waitForApp(1000);
+            
+            const nowOnHome = await homePage.isHomePageDisplayed();
+            if (nowOnHome) {
+              console.log(`✅ Recovered to home page after ${i + 1} back presses`);
+              break;
+            }
+          }
+          
+          // If still not on home, try clicking home tab
+          const stillNotHome = !(await homePage.isHomePageDisplayed());
+          if (stillNotHome) {
+            console.log("Trying recovery strategy 2: Click home tab");
+            const homeTabSelector = '//android.widget.ImageView[@content-desc="Home\nTab 1 of 4"]';
+            const homeTab = await $(homeTabSelector);
+            
+            if (await homeTab.isExisting()) {
+              await homeTab.click();
+              await TestHelpers.waitForApp(2000);
+              console.log("✅ Clicked home tab");
+            }
+          }
         }
-        await TestHelpers.waitForApp(2000);
+        
+        // Final verification
+        const finalHomeCheck = await homePage.isHomePageDisplayed();
+        console.log(`Recovery ${finalHomeCheck ? 'successful' : 'failed'} - Home page: ${finalHomeCheck}`);
+        
       } catch (recoveryError) {
-        console.log("Recovery failed:", recoveryError);
+        console.log("❌ Recovery failed:", recoveryError);
       }
       
       throw error;

@@ -170,55 +170,300 @@ export class CategoriesPage extends BasePage {
       .perform();
     await browser.pause(1500);
   }
-
-  async scrollToEnergyHealth(): Promise<void> {
-    console.log("📜 Performing multiple scrolls to find Energy & Health...");
+// Replace the scrollToEnergyHealth method with this implementation:
+async scrollToEnergyHealth(): Promise<void> {
+  console.log("📜 Scrolling to Energy & Health using proven manual coordinates...");
+  
+  try {
+    // Get device dimensions for reference
+    const { width, height } = await browser.getWindowSize();
+    console.log(`📱 Device dimensions: ${width}x${height}`);
     
-    // First scroll
-    await browser.action('pointer')
-      .move({ duration: 0, x: 490, y: 1990 })
-      .down({ button: 0 })
-      .move({ duration: 1000, x: 481, y: 344 })
-      .up({ button: 0 })
-      .perform();
+    // Your exact recorded scroll sequences that work
+    const manualScrollSequence = [
+      {
+        startX: 522, startY: 1919,
+        endX: 526, endY: 280,
+        duration: 1000,
+        pauseAfter: 500
+      },
+      {
+        startX: 552, startY: 2191,
+        endX: 565, endY: 237,
+        duration: 1000,
+        pauseAfter: 500
+      },
+      {
+        startX: 556, startY: 2066,
+        endX: 569, endY: 280,
+        duration: 1000,
+        pauseAfter: 500
+      },
+      {
+        startX: 556, startY: 2126,
+        endX: 556, endY: 298,
+        duration: 1000,
+        pauseAfter: 500
+      },
+      {
+        startX: 578, startY: 1928,
+        endX: 599, endY: 1190,
+        duration: 1000,
+        pauseAfter: 1000
+      }
+    ];
+    
+    // Execute each scroll exactly as recorded
+    for (let i = 0; i < manualScrollSequence.length; i++) {
+      const scroll = manualScrollSequence[i];
+      console.log(`Executing scroll ${i + 1}/${manualScrollSequence.length}...`);
+      console.log(`  From: (${scroll.startX}, ${scroll.startY}) To: (${scroll.endX}, ${scroll.endY})`);
+      
+      await browser.action('pointer')
+        .move({ duration: 0, x: scroll.startX, y: scroll.startY })
+        .down({ button: 0 })
+        .move({ duration: scroll.duration, x: scroll.endX, y: scroll.endY })
+        .up({ button: 0 })
+        .perform();
+      
+      await browser.pause(scroll.pauseAfter);
+      
+      // After 3rd scroll, check if Digestives is visible
+      if (i >= 2) {
+        const digestivesElement = await $(this.digestivesSubcategory);
+        if (await digestivesElement.isExisting()) {
+          console.log(`✅ Found Digestives subcategory after scroll ${i + 1}`);
+          
+          // Get element position
+          const location = await digestivesElement.getLocation();
+          const size = await digestivesElement.getSize();
+          console.log(`Digestives position: x=${location.x}, y=${location.y}, height=${size.height}`);
+          
+          // Check if element is in safe clickable zone (not too close to bottom)
+          // Assuming View Cart appears in bottom ~200-300 pixels
+          if (location.y > height - 300) {
+            console.log("⚠️ Digestives is too close to bottom, adjusting position...");
+            
+            // Do a small adjustment scroll to center the element
+            await browser.action('pointer')
+              .move({ duration: 0, x: width / 2, y: location.y })
+              .down({ button: 0 })
+              .move({ duration: 500, x: width / 2, y: height / 2 })
+              .up({ button: 0 })
+              .perform();
+            await browser.pause(500);
+          }
+          
+          await this.takeScreenshot('energy-health-found');
+          return; // Success!
+        }
+      }
+    }
+    
+    // If we completed all scrolls but didn't find it during the loop, check one more time
+    console.log("\n🔍 Final check for Digestives element...");
     await browser.pause(1000);
-
-    // Second scroll
-    await browser.action('pointer')
-      .move({ duration: 0, x: 464, y: 1844 })
-      .down({ button: 0 })
-      .move({ duration: 1000, x: 533, y: 520 })
-      .up({ button: 0 })
-      .perform();
-    await browser.pause(1000);
-
-    // Third scroll
-    await browser.action('pointer')
-      .move({ duration: 0, x: 421, y: 1887 })
-      .down({ button: 0 })
-      .move({ duration: 1000, x: 434, y: 284 })
-      .up({ button: 0 })
-      .perform();
-    await browser.pause(1000);
-
-    // Fourth scroll
-    await browser.action('pointer')
-      .move({ duration: 0, x: 460, y: 1337 })
-      .down({ button: 0 })
-      .move({ duration: 1000, x: 636, y: 331 })
-      .up({ button: 0 })
-      .perform();
-    await browser.pause(1000);
-
-    // Fifth scroll
-    await browser.action('pointer')
-      .move({ duration: 0, x: 679, y: 1711 })
-      .down({ button: 0 })
-      .move({ duration: 1000, x: 649, y: 434 })
-      .up({ button: 0 })
-      .perform();
-    await browser.pause(1500);
+    
+    // Try multiple selectors
+    const alternativeSelectors = [
+      this.digestivesSubcategory,
+      '//android.widget.ImageView[contains(@content-desc, "Digestives")]',
+      '//android.widget.ImageView[contains(@content-desc, "Digestives & Acidity")]',
+      '//*[contains(@content-desc, "Digestives")][@clickable="true"]',
+      '//android.view.View[contains(@content-desc, "Digestives")]'
+    ];
+    
+    let found = false;
+    for (const selector of alternativeSelectors) {
+      try {
+        const element = await $(selector);
+        if (await element.isExisting()) {
+          console.log(`✅ Found Digestives using selector: ${selector}`);
+          found = true;
+          
+          // Final position check
+          const location = await element.getLocation();
+          if (location.y > height - 300) {
+            console.log("Performing final position adjustment...");
+            await browser.action('pointer')
+              .move({ duration: 0, x: 540, y: height - 400 })
+              .down({ button: 0 })
+              .move({ duration: 500, x: 540, y: height - 700 })
+              .up({ button: 0 })
+              .perform();
+            await browser.pause(500);
+          }
+          
+          break;
+        }
+      } catch (e) {
+        // Try next selector
+      }
+    }
+    
+    if (!found) {
+      console.error("❌ Could not find Digestives subcategory!");
+      await this.takeScreenshot('digestives-not-found-final');
+      
+      // As a last resort, try one more aggressive scroll
+      console.log("🔄 Last resort: One final scroll attempt...");
+      await browser.action('pointer')
+        .move({ duration: 0, x: 560, y: 2000 })
+        .down({ button: 0 })
+        .move({ duration: 1500, x: 560, y: 200 })
+        .up({ button: 0 })
+        .perform();
+      await browser.pause(1000);
+      
+      // Check one more time
+      const lastCheck = await $(this.digestivesSubcategory);
+      if (!await lastCheck.isExisting()) {
+        throw new Error("Energy & Health section not reachable even with manual coordinates!");
+      }
+    }
+    
+    console.log("✅ Successfully scrolled to Energy & Health section!");
+    
+  } catch (error) {
+    console.error("❌ Critical error in scrollToEnergyHealth:", error);
+    await this.takeScreenshot('scroll-error-critical');
+    throw error;
   }
+}
+
+// Alternative method that's even more aggressive if needed
+async scrollToEnergyHealthAggressive(): Promise<void> {
+  console.log("📜 Using AGGRESSIVE scroll method for Energy & Health...");
+  
+  try {
+    // Direct execution of your exact commands
+    await browser.action('pointer')
+      .move({ duration: 0, x: 522, y: 1919 })
+      .down({ button: 0 })
+      .move({ duration: 1000, x: 526, y: 280 })
+      .up({ button: 0 })
+      .perform();
+    await browser.pause(500);
+    
+    await browser.action('pointer')
+      .move({ duration: 0, x: 552, y: 2191 })
+      .down({ button: 0 })
+      .move({ duration: 1000, x: 565, y: 237 })
+      .up({ button: 0 })
+      .perform();
+    await browser.pause(500);
+    
+    await browser.action('pointer')
+      .move({ duration: 0, x: 556, y: 2066 })
+      .down({ button: 0 })
+      .move({ duration: 1000, x: 569, y: 280 })
+      .up({ button: 0 })
+      .perform();
+    await browser.pause(500);
+    
+    await browser.action('pointer')
+      .move({ duration: 0, x: 556, y: 2126 })
+      .down({ button: 0 })
+      .move({ duration: 1000, x: 556, y: 298 })
+      .up({ button: 0 })
+      .perform();
+    await browser.pause(500);
+    
+    await browser.action('pointer')
+      .move({ duration: 0, x: 578, y: 1928 })
+      .down({ button: 0 })
+      .move({ duration: 1000, x: 599, y: 1190 })
+      .up({ button: 0 })
+      .perform();
+    await browser.pause(1000);
+    
+    console.log("✅ Aggressive scroll sequence completed!");
+    
+    // Verify we can see Digestives
+    const digestives = await $(this.digestivesSubcategory);
+    if (!await digestives.isExisting()) {
+      // Try with alternative selectors
+      const altDigestives = await $('//android.widget.ImageView[contains(@content-desc, "Digestives")]');
+      if (!await altDigestives.isExisting()) {
+        throw new Error("Digestives not visible after aggressive scroll!");
+      }
+    }
+    
+    console.log("✅ Energy & Health section is now visible!");
+    
+  } catch (error) {
+    console.error("❌ Aggressive scroll failed:", error);
+    throw error;
+  }
+}
+
+// Debug method to understand why scrolling might not work
+async debugScrollIssue(): Promise<void> {
+  console.log("\n🔍 DEBUG: Analyzing scroll behavior...");
+  
+  try {
+    const { width, height } = await browser.getWindowSize();
+    console.log(`Device screen: ${width}x${height}`);
+    
+    // Get all visible elements before scroll
+    const elementsBefore = await $$('//android.widget.ImageView[@content-desc]');
+    const countBefore = elementsBefore.length;
+    console.log(`Elements before scroll: ${countBefore}`);
+    
+    // Try a simple scroll with your coordinates
+    console.log("Testing scroll with your coordinates...");
+    await browser.action('pointer')
+      .move({ duration: 0, x: 550, y: 2000 })
+      .down({ button: 0 })
+      .move({ duration: 1000, x: 550, y: 300 })
+      .up({ button: 0 })
+      .perform();
+    await browser.pause(1000);
+    
+    // Check if anything changed
+    const elementsAfter = await $$('//android.widget.ImageView[@content-desc]');
+    const countAfter = elementsAfter.length;
+    console.log(`Elements after scroll: ${countAfter}`);
+    
+    if (countBefore === countAfter) {
+      console.log("⚠️ WARNING: Scroll might not be working properly!");
+      console.log("Possible issues:");
+      console.log("1. The scrollable container might not be the entire screen");
+      console.log("2. Touch events might be intercepted by another element");
+      console.log("3. The app might have custom scroll handling");
+    } else {
+      console.log("✅ Scroll is working! New elements appeared.");
+    }
+    
+    // Check for any overlaying elements
+    const viewCartButton = await $('//android.view.View[contains(@content-desc, "View Cart")]');
+    if (await viewCartButton.isExisting()) {
+      const vcLocation = await viewCartButton.getLocation();
+      console.log(`⚠️ View Cart button detected at y=${vcLocation.y}`);
+    }
+    
+  } catch (error) {
+    console.error("Debug failed:", error);
+  }
+}
+
+
+
+// Alternative: Add a method to check if View Cart is blocking
+async isViewCartBlocking(): Promise<boolean> {
+  try {
+    const viewCartBtn = await $(this.viewCartFloatingButton);
+    if (await viewCartBtn.isExisting()) {
+      const location = await viewCartBtn.getLocation();
+      const size = await viewCartBtn.getSize();
+      console.log(`View Cart button location: ${JSON.stringify(location)}, size: ${JSON.stringify(size)}`);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    return false;
+  }
+}
 
   // Navigation methods
   async navigateToCategories(): Promise<boolean> {
@@ -394,92 +639,271 @@ export class CategoriesPage extends BasePage {
   }
 
   // Updated processSubcategoryFlow method
-  async processSubcategoryFlow(
-    subcategorySelector: string,
-    productName: string,
-    subcategoryName: string
-  ): Promise<number> {
-    console.log(`\n📂 === Processing ${subcategoryName} ===`);
-    let totalAdded = 0;
+  // async processSubcategoryFlow(
+  //   subcategorySelector: string,
+  //   productName: string,
+  //   subcategoryName: string
+  // ): Promise<number> {
+  //   console.log(`\n📂 === Processing ${subcategoryName} ===`);
+  //   let totalAdded = 0;
 
-    try {
-      // Step 1: Click on subcategory
-      console.log(`📱 Clicking ${subcategoryName} subcategory...`);
-      const subcategory = await $(subcategorySelector);
-      if (await subcategory.isExisting()) {
-        await subcategory.click();
-        await browser.pause(3000);
-        console.log(`✅ Opened ${subcategoryName} subcategory page`);
-        await this.takeScreenshot(`${subcategoryName.toLowerCase().replace(/\s+/g, '-')}-subcategory`);
-      } else {
-        console.error(`❌ ${subcategoryName} subcategory not found`);
-        return 0;
-      }
+  //   try {
+  //     // Step 1: Click on subcategory
+  //     console.log(`📱 Clicking ${subcategoryName} subcategory...`);
+  //     const subcategory = await $(subcategorySelector);
+  //     if (await subcategory.isExisting()) {
+  //       await subcategory.click();
+  //       await browser.pause(3000);
+  //       console.log(`✅ Opened ${subcategoryName} subcategory page`);
+  //       await this.takeScreenshot(`${subcategoryName.toLowerCase().replace(/\s+/g, '-')}-subcategory`);
+  //     } else {
+  //       console.error(`❌ ${subcategoryName} subcategory not found`);
+  //       return 0;
+  //     }
 
-      // Step 2: Click on product - UPDATED WITH MULTIPLE ATTEMPTS
-      console.log(`📱 Looking for product in ${subcategoryName}...`);
+  //     // Step 2: Click on product - UPDATED WITH MULTIPLE ATTEMPTS
+  //     console.log(`📱 Looking for product in ${subcategoryName}...`);
       
-      // Wait a bit for products to load
-      await browser.pause(2000);
+  //     // Wait a bit for products to load
+  //     await browser.pause(2000);
       
-      // Get product selectors based on product name
-      const productSelectors = this.getProductSelectors(productName);
+  //     // Get product selectors based on product name
+  //     const productSelectors = this.getProductSelectors(productName);
       
-      let productFound = false;
-      for (const selector of productSelectors) {
-        try {
-          const product = await $(selector);
-          if (await product.isExisting()) {
-            await product.click();
-            productFound = true;
-            console.log(`✅ Clicked product using selector: ${selector}`);
-            break;
-          }
-        } catch (error) {
-          // Try next selector
+  //     let productFound = false;
+  //     for (const selector of productSelectors) {
+  //       try {
+  //         const product = await $(selector);
+  //         if (await product.isExisting()) {
+  //           await product.click();
+  //           productFound = true;
+  //           console.log(`✅ Clicked product using selector: ${selector}`);
+  //           break;
+  //         }
+  //       } catch (error) {
+  //         // Try next selector
+  //       }
+  //     }
+      
+  //     if (!productFound) {
+  //       console.error(`❌ Product not found with any selector in ${subcategoryName}`);
+  //       // Take screenshot to debug
+  //       await this.takeScreenshot(`${subcategoryName}-product-not-found`);
+  //       await this.goBackFromPage();
+  //       return 0;
+  //     }
+      
+  //     // Wait for product detail page to load
+  //     await browser.pause(3000);
+  //     console.log(`✅ Opened product detail page`);
+  //     await this.takeScreenshot(`${subcategoryName.toLowerCase().replace(/\s+/g, '-')}-product-detail`);
+      
+  //     // Step 3: Process product detail page
+  //     const addedProducts = await this.processProductDetailPage();
+  //     totalAdded += addedProducts;
+      
+  //     // Step 4: Go back to subcategory
+  //     console.log("⬅️ Going back to subcategory page...");
+  //     await this.goBackFromPage();
+  //     await browser.pause(2000);
+
+  //     // Step 5: Go back to main categories
+  //     console.log("⬅️ Going back to categories main page...");
+  //     await this.goBackFromPage();
+  //     await browser.pause(2000);
+
+  //   } catch (error) {
+  //     console.error(`❌ Error in ${subcategoryName} flow:`, error);
+  //     // Try to recover by going back twice
+  //     await this.goBackFromPage();
+  //     await browser.pause(1000);
+  //     await this.goBackFromPage();
+  //     await browser.pause(1000);
+  //   }
+
+  //   console.log(`📊 Total products added from ${subcategoryName}: ${totalAdded}`);
+  //   return totalAdded;
+  // }
+// Also update the processSubcategoryFlow method for better handling of Digestives
+async processSubcategoryFlow(
+  subcategorySelector: string,
+  productName: string,
+  subcategoryName: string
+): Promise<number> {
+  console.log(`\n📂 === Processing ${subcategoryName} ===`);
+  let totalAdded = 0;
+
+  try {
+    // Special handling for Digestives subcategory
+    if (subcategoryName === "Digestives & Acidity Relief") {
+      // Double-check position before clicking
+      const digestivesElement = await $(subcategorySelector);
+      if (await digestivesElement.isExisting()) {
+        const location = await digestivesElement.getLocation();
+        const { height } = await browser.getWindowSize();
+        
+        // If still too close to bottom, do a small adjustment
+        if (location.y > height - 300) {
+          console.log("⚠️ Making final position adjustment...");
+          await SwipeUtils.swipeDown(0.2); // Small swipe down
+          await browser.pause(1000);
         }
       }
-      
-      if (!productFound) {
-        console.error(`❌ Product not found with any selector in ${subcategoryName}`);
-        // Take screenshot to debug
-        await this.takeScreenshot(`${subcategoryName}-product-not-found`);
-        await this.goBackFromPage();
-        return 0;
+    }
+    
+    // Click on subcategory
+    console.log(`📱 Clicking ${subcategoryName} subcategory...`);
+    const subcategory = await $(subcategorySelector);
+    
+    if (await subcategory.isExisting()) {
+      // For Digestives, use a more careful click approach
+      if (subcategoryName === "Digestives & Acidity Relief") {
+        const location = await subcategory.getLocation();
+        const size = await subcategory.getSize();
+        
+        // Click in the center of the element
+        await browser.action('pointer')
+          .move({ duration: 0, x: location.x + size.width/2, y: location.y + size.height/2 })
+          .down({ button: 0 })
+          .up({ button: 0 })
+          .perform();
+        
+        console.log(`✅ Clicked ${subcategoryName} using coordinates`);
+      } else {
+        // Regular click for other subcategories
+        await subcategory.click();
+        console.log(`✅ Clicked ${subcategoryName} subcategory`);
       }
       
-      // Wait for product detail page to load
       await browser.pause(3000);
-      console.log(`✅ Opened product detail page`);
-      await this.takeScreenshot(`${subcategoryName.toLowerCase().replace(/\s+/g, '-')}-product-detail`);
+      await this.takeScreenshot(`${subcategoryName.toLowerCase().replace(/\s+/g, '-')}-subcategory`);
       
-      // Step 3: Process product detail page
-      const addedProducts = await this.processProductDetailPage();
-      totalAdded += addedProducts;
-      
-      // Step 4: Go back to subcategory
-      console.log("⬅️ Going back to subcategory page...");
-      await this.goBackFromPage();
-      await browser.pause(2000);
-
-      // Step 5: Go back to main categories
-      console.log("⬅️ Going back to categories main page...");
-      await this.goBackFromPage();
-      await browser.pause(2000);
-
-    } catch (error) {
-      console.error(`❌ Error in ${subcategoryName} flow:`, error);
-      // Try to recover by going back twice
-      await this.goBackFromPage();
-      await browser.pause(1000);
-      await this.goBackFromPage();
-      await browser.pause(1000);
+      // Verify we're on the subcategory page
+      const onSubcategory = await this.isOnSubcategoryPage();
+      if (!onSubcategory) {
+        console.log("❌ Click might have hit View Cart instead, not on subcategory page");
+        return 0;
+      }
+    } else {
+      console.error(`❌ ${subcategoryName} subcategory not found`);
+      return 0;
     }
 
-    console.log(`📊 Total products added from ${subcategoryName}: ${totalAdded}`);
-    return totalAdded;
+    // Rest of your existing code remains the same...
+    console.log(`📱 Looking for product in ${subcategoryName}...`);
+    await browser.pause(2000);
+    
+    const productSelectors = this.getProductSelectors(productName);
+    let productFound = false;
+    
+    for (const selector of productSelectors) {
+      try {
+        const product = await $(selector);
+        if (await product.isExisting()) {
+          await product.click();
+          productFound = true;
+          console.log(`✅ Clicked product using selector: ${selector}`);
+          break;
+        }
+      } catch (error) {
+        // Try next selector
+      }
+    }
+    
+    if (!productFound) {
+      console.error(`❌ Product not found with any selector in ${subcategoryName}`);
+      await this.takeScreenshot(`${subcategoryName}-product-not-found`);
+      await this.goBackFromPage();
+      return 0;
+    }
+    
+    await browser.pause(3000);
+    console.log(`✅ Opened product detail page`);
+    await this.takeScreenshot(`${subcategoryName.toLowerCase().replace(/\s+/g, '-')}-product-detail`);
+    
+    const addedProducts = await this.processProductDetailPage();
+    totalAdded += addedProducts;
+    
+    console.log("⬅️ Going back to subcategory page...");
+    await this.goBackFromPage();
+    await browser.pause(2000);
+
+    console.log("⬅️ Going back to categories main page...");
+    await this.goBackFromPage();
+    await browser.pause(2000);
+
+  } catch (error) {
+    console.error(`❌ Error in ${subcategoryName} flow:`, error);
+    await this.goBackFromPage();
+    await browser.pause(1000);
+    await this.goBackFromPage();
+    await browser.pause(1000);
   }
 
+  console.log(`📊 Total products added from ${subcategoryName}: ${totalAdded}`);
+  return totalAdded;
+}
+
+// Helper method to check if we're on a subcategory page
+// Helper method to check if we're on a subcategory page
+async isOnSubcategoryPage(): Promise<boolean> {
+  try {
+    // Check for common elements on subcategory pages
+    const productElements = await $$('//android.widget.ImageView[contains(@content-desc, "₹")]');
+    const hasProducts = (await productElements.length) > 0;
+    
+    // Check if we're not on main categories page
+    const sweetenersVisible = await $(this.sweetenersSubcategory).isExisting();
+    
+    return hasProducts && !sweetenersVisible;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Add a safer scroll method specifically for finding Energy & Health
+async scrollToEnergyHealthSafe(): Promise<void> {
+  console.log("📜 Safe scrolling to Energy & Health...");
+  
+  const { width, height } = await browser.getWindowSize();
+  const maxScrolls = 6;
+  let found = false;
+  
+  for (let i = 0; i < maxScrolls && !found; i++) {
+    // Check if Digestives is visible
+    const digestives = await $(this.digestivesSubcategory);
+    if (await digestives.isExisting()) {
+      const location = await digestives.getLocation();
+      
+      // Check if it's in a safe clickable area (not too close to bottom)
+      if (location.y < height - 250) {
+        console.log("✅ Found Digestives in safe clickable area");
+        found = true;
+        break;
+      } else {
+        console.log("Found Digestives but too close to bottom, scrolling more...");
+      }
+    }
+    
+    // Perform safe scroll
+    const startY = height * 0.6;
+    const endY = height * 0.25;
+    
+    await browser.action('pointer')
+      .move({ duration: 0, x: width * 0.5, y: startY })
+      .down({ button: 0 })
+      .move({ duration: 800, x: width * 0.5, y: endY })
+      .up({ button: 0 })
+      .perform();
+    
+    await browser.pause(1000);
+    console.log(`Scroll attempt ${i + 1}/${maxScrolls}`);
+  }
+  
+  if (!found) {
+    console.log("⚠️ Could not find Digestives in safe area after scrolling");
+  }
+}
   // Main test flow
   async testCategoriesFlow(): Promise<number> {
     console.log("\n🛒 === Starting Categories Shopping Flow ===");

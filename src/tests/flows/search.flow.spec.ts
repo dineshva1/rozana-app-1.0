@@ -4,7 +4,7 @@ import { HomePage } from "../../pages/home.page";
 import { SearchPage } from "../../pages/search.page";
 import { TestHelpers } from "../../utils/test-helpers";
 
-describe("Search Flow", () => {
+describe("Search Flow - New UI", () => {
   let homePage: HomePage;
   let searchPage: SearchPage;
 
@@ -13,8 +13,8 @@ describe("Search Flow", () => {
     searchPage = new SearchPage();
   });
 
-  it("should search for products and add them to cart", async () => {
-    console.log(TestHelpers.formatTestLog("=== Test: Search Products Flow ==="));
+  it("should search for products using suggestions and add them to cart", async () => {
+    console.log(TestHelpers.formatTestLog("=== Test: Search Products Flow (New UI) ==="));
     
     try {
       // Step 1: Ensure we're on home page
@@ -28,7 +28,7 @@ describe("Search Flow", () => {
       await TestHelpers.takeScreenshot('search-00-home-page');
       
       // Step 2: Search and add products
-      console.log("\nStep 2: Searching and adding products...");
+      console.log("\nStep 2: Searching and adding products (milk, oil, biscuit, soap, bread)...");
       const productsAdded = await searchPage.searchAndAddProducts();
       
       // Verify we added at least some products
@@ -43,28 +43,30 @@ describe("Search Flow", () => {
       expect(isBackHome).toBe(true);
       console.log("✓ Successfully returned to home page");
       
-      await TestHelpers.takeScreenshot('search-05-back-to-home');
+      await TestHelpers.takeScreenshot('search-06-final-home');
       
-      console.log(TestHelpers.formatSuccessLog(`Search flow completed successfully! Added ${productsAdded} products`));
+      console.log(TestHelpers.formatSuccessLog(`Search flow completed! Added ${productsAdded}/5 products`));
       
-      // Extra pause to ensure stability before next test
+      // Extra pause to ensure stability
       await TestHelpers.waitForApp(2000);
       
     } catch (error) {
       console.error(TestHelpers.formatErrorLog(`Search flow failed: ${error}`));
       await TestHelpers.takeScreenshot('search-error-final');
       
-      // Try to recover by navigating to home
+      // Try to recover
       try {
-        console.log("Attempting to recover and navigate to home...");
-        await browser.back();
-        await TestHelpers.waitForApp(2000);
-        
-        // Check if we need another back press
-        const isHome = await homePage.isHomePageDisplayed();
-        if (!isHome) {
+        console.log("Attempting recovery...");
+        // Multiple back presses to ensure we get to home
+        for (let i = 0; i < 3; i++) {
           await browser.back();
-          await TestHelpers.waitForApp(2000);
+          await TestHelpers.waitForApp(1000);
+          
+          const isHome = await homePage.isHomePageDisplayed();
+          if (isHome) {
+            console.log("✓ Recovered to home page");
+            break;
+          }
         }
       } catch (recoveryError) {
         console.log("Recovery failed:", recoveryError);

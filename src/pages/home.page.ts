@@ -3,121 +3,140 @@ import { BasePage } from './base.page';
 import { browser } from '@wdio/globals';
 
 export class HomePage extends BasePage {
-  // Search bar selectors - robust for any search term
+  // Priority 1: Profile icon - most reliable and quickest to find
+  private get profileIcon() {
+    return '//android.widget.ImageView[@instance="2" or position()=3][parent::android.view.View]';
+  }
+  
+  private get profileIconByUiAutomator() {
+    return 'android=new UiSelector().className("android.widget.ImageView").instance(2)';
+  }
+
+  // Priority 2: Switch language icon
+  private get switchLanguageIcon() {
+    return '//android.widget.ImageView[@instance="1" or position()=2][parent::android.view.View]';
+  }
+  
+  private get switchLanguageByUiAutomator() {
+    return 'android=new UiSelector().className("android.widget.ImageView").instance(1)';
+  }
+
+  // Priority 3: Search bar
   private get searchBar() { 
     return '//android.widget.EditText[contains(@text, "Search for")]'; 
   }
-  
-  private get searchBarByAccessibility() {
-    return '//android.widget.ImageView[contains(@content-desc, "Search for")]';
-  }
-  
-  // Location selectors - robust for any location
-  private get currentLocation() {
-    return '//android.widget.ImageView[contains(@content-desc, "Current") and contains(@content-desc, "Deliver in")]';
-  }
-  
-  private get currentLocationAlternative() {
-    return '//android.widget.ImageView[contains(@content-desc, "Current Deliver in")]';
+
+  // Priority 4: Bottom navigation - Home tab
+  private get homeTab() {
+    return '//*[@text="Home" or @content-desc="Home"][parent::*[contains(@resource-id, "tab") or contains(@class, "Tab")]]';
   }
 
-  async isSearchBarDisplayed(): Promise<boolean> {
+  // Quick check for profile icon only
+  private async isProfileIconDisplayed(): Promise<boolean> {
     try {
-      const searchBarExists = 
-        await this.isElementExisting(this.searchBar) || 
-        await this.isElementExisting(this.searchBarByAccessibility);
-      
-      return searchBarExists;
+      // Try UiAutomator first (faster)
+      if (await this.isElementExisting(this.profileIconByUiAutomator)) {
+        return true;
+      }
+      // Fallback to xpath
+      return await this.isElementExisting(this.profileIcon);
     } catch (error) {
-      console.error('Error checking search bar:', error);
       return false;
     }
   }
 
-  async isLocationDisplayed(): Promise<boolean> {
+  // Quick check for switch language icon
+  private async isSwitchLanguageDisplayed(): Promise<boolean> {
     try {
-      const locationExists = 
-        await this.isElementExisting(this.currentLocation) || 
-        await this.isElementExisting(this.currentLocationAlternative);
-      
-      return locationExists;
+      // Try UiAutomator first (faster)
+      if (await this.isElementExisting(this.switchLanguageByUiAutomator)) {
+        return true;
+      }
+      // Fallback to xpath
+      return await this.isElementExisting(this.switchLanguageIcon);
     } catch (error) {
-      console.error('Error checking location:', error);
       return false;
     }
   }
 
-  async getLocationText(): Promise<string> {
+  // Quick check for search bar
+  private async isSearchBarDisplayed(): Promise<boolean> {
     try {
-      let locationElement;
-      
-      if (await this.isElementExisting(this.currentLocation)) {
-        locationElement = await this.findElement(this.currentLocation);
-      } else if (await this.isElementExisting(this.currentLocationAlternative)) {
-        locationElement = await this.findElement(this.currentLocationAlternative);
-      }
-      
-      if (locationElement) {
-        const contentDesc = await locationElement.getAttribute('content-desc');
-        return contentDesc || '';
-      }
-      
-      return '';
+      return await this.isElementExisting(this.searchBar);
     } catch (error) {
-      console.error('Error getting location text:', error);
-      return '';
+      return false;
     }
   }
 
+  // Quick check for home tab
+  private async isHomeTabDisplayed(): Promise<boolean> {
+    try {
+      return await this.isElementExisting(this.homeTab);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // Optimized home page detection - stops at first found element
   async isHomePageDisplayed(): Promise<boolean> {
     try {
-      // Check if either search bar or location is displayed
-      // This indicates we're on the home page
-      const searchBarDisplayed = await this.isSearchBarDisplayed();
-      const locationDisplayed = await this.isLocationDisplayed();
+      // Check in priority order - stop at first match
       
-      return searchBarDisplayed || locationDisplayed;
+      // 1. Profile icon (fastest and most reliable)
+      if (await this.isProfileIconDisplayed()) {
+        console.log("Home page detected via Profile icon");
+        return true;
+      }
+      
+      // 2. Switch language icon
+      if (await this.isSwitchLanguageDisplayed()) {
+        console.log("Home page detected via Switch Language icon");
+        return true;
+      }
+      
+      // 3. Search bar
+      if (await this.isSearchBarDisplayed()) {
+        console.log("Home page detected via Search bar");
+        return true;
+      }
+      
+      // 4. Home tab (last resort)
+      if (await this.isHomeTabDisplayed()) {
+        console.log("Home page detected via Home tab");
+        return true;
+      }
+      
+      return false;
     } catch (error) {
       console.error('Error checking if home page is displayed:', error);
       return false;
     }
   }
 
-  async verifyHomePageElements(): Promise<{
-    searchBar: boolean;
-    location: boolean;
-  }> {
-    console.log("Verifying home page elements...");
-    
-    const results = {
-      searchBar: await this.isSearchBarDisplayed(),
-      location: await this.isLocationDisplayed()
-    };
-    
-    console.log(`Search Bar present: ${results.searchBar}`);
-    console.log(`Location present: ${results.location}`);
-    
-    if (results.location) {
-      const locationText = await this.getLocationText();
-      console.log(`Location text: ${locationText}`);
-    }
-    
-    return results;
-  }
-
+  // Fast wait for home page - checks profile icon first
   async waitForHomePageToLoad(): Promise<boolean> {
     console.log("Waiting for home page to load...");
     
     try {
+      // Wait for profile icon first (most reliable)
       await browser.waitUntil(
-        async () => await this.isSearchBarDisplayed(),
+        async () => {
+          // Quick check for profile icon
+          if (await this.isProfileIconDisplayed()) {
+            return true;
+          }
+          // If not found, check other elements
+          return await this.isHomePageDisplayed();
+        },
         {
           timeout: 15000,
-          timeoutMsg: 'Search bar did not appear within 15 seconds'
+          timeoutMsg: 'Home page did not load within 15 seconds',
+          interval: 500 // Check every 500ms
         }
       );
       
-      await browser.pause(2000);
+      // Small pause to ensure page is stable
+      await browser.pause(1000);
       
       console.log("Home page loaded successfully");
       return true;
@@ -127,8 +146,23 @@ export class HomePage extends BasePage {
     }
   }
 
-  async isHomePageFullyLoaded(): Promise<boolean> {
-    const elements = await this.verifyHomePageElements();
-    return elements.searchBar && elements.location;
+  // Get all available home page elements (for debugging)
+  async getAvailableHomeElements(): Promise<{
+    profile: boolean;
+    switchLanguage: boolean;
+    searchBar: boolean;
+    homeTab: boolean;
+  }> {
+    return {
+      profile: await this.isProfileIconDisplayed(),
+      switchLanguage: await this.isSwitchLanguageDisplayed(),
+      searchBar: await this.isSearchBarDisplayed(),
+      homeTab: await this.isHomeTabDisplayed()
+    };
+  }
+
+  // Quick verification - just checks if we're on home page
+  async verifyHomePage(): Promise<boolean> {
+    return await this.isHomePageDisplayed();
   }
 }

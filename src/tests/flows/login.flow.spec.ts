@@ -28,7 +28,7 @@ describe("Complete Login Flow with Location Selection", () => {
       
       // Step 1: Verify we're on home page initially
       console.log(TestHelpers.formatTestLog("\nPre-condition: Verifying initial home page..."));
-      const isOnHomePage = await homePage.isSearchBarDisplayed();
+      const isOnHomePage = await homePage.isHomePageDisplayed();
       if (!isOnHomePage) {
         console.log(TestHelpers.formatWarningLog("Not on home page initially, attempting to navigate..."));
         await browser.pause(3000);
@@ -47,7 +47,7 @@ describe("Complete Login Flow with Location Selection", () => {
       
       // Step 4: Additional verification - check if we're truly on home page
       await browser.pause(2000);
-      const finalHomePageCheck = await homePage.isSearchBarDisplayed();
+      const finalHomePageCheck = await homePage.isHomePageDisplayed();
       
       if (finalHomePageCheck) {
         console.log(TestHelpers.formatSuccessLog("Search bar is visible - confirming successful navigation"));

@@ -9,20 +9,105 @@ export class ProfilePage extends BasePage {
     return '//android.widget.ImageView[@content-desc="Profile Tab 4 of 4"]';
   }
   
-  private get profileTabAlt() {
-    return '~Profile\nTab 4 of 4';
+  private get profileTabByInstance() {
+    return 'android=new UiSelector().className("android.widget.ImageView").instance(2)';
+  }
+  
+  private get profileTabByXpath() {
+    return '//android.widget.FrameLayout[@resource-id="android:id/content"]/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.view.View/android.view.View/android.view.View[1]/android.view.View/android.widget.ImageView[3]';
   }
 
   // Profile page elements
   private get yourOrdersCard() {
-    return '//android.view.View[@content-desc="Your Orders"]';
+    return '//android.widget.Button[@content-desc="Your Orders"]';
   }
 
   private get yourOrdersCardAlt() {
     return '~Your Orders';
   }
+  
+  private get yourOrdersCardByUiSelector() {
+    return 'android=new UiSelector().description("Your Orders")';
+  }
 
-  // ENGLISH UI - Language button selectors
+  // Saved Addresses
+  private get savedAddressesButton() {
+    return '//android.widget.Button[contains(@content-desc, "Saved Addresses")]';
+  }
+  
+  private get savedAddressesButtonAlt() {
+    return '~Saved Addresses\n3 Addresses';
+  }
+  
+  private get savedAddressesButtonByUiSelector() {
+    return 'android=new UiSelector().description("Saved Addresses 3 Addresses")';
+  }
+
+  // Back button from addresses
+  private get backButtonFromAddresses() {
+    return '//android.widget.Button[@content-desc="Back"]';
+  }
+  
+  private get backButtonFromAddressesAlt() {
+    return '~Back';
+  }
+
+  // Profile button
+  private get profileButton() {
+    return '//android.widget.Button[@content-desc="Profile"]';
+  }
+  
+  private get profileButtonAlt() {
+    return '~Profile';
+  }
+
+  // Edit Profile elements
+  private get fullNameInput() {
+    return '//android.widget.EditText[@text="Test"]';
+  }
+  
+  private get fullNameInputByUiSelector() {
+    return 'android=new UiSelector().text("Test")';
+  }
+  
+  private get emailInput() {
+    return '//android.widget.EditText[@text="test@somethibg.com"]';
+  }
+  
+  private get emailInputByUiSelector() {
+    return 'android=new UiSelector().text("test@somethibg.com")';
+  }
+  
+  private get saveButton() {
+    return '//android.widget.Button[@content-desc="Save"]';
+  }
+  
+  private get saveButtonAlt() {
+    return '~Save';
+  }
+  
+  private get closeButton() {
+    return '//android.widget.Button[@content-desc="Close"]';
+  }
+  
+  private get closeButtonAlt() {
+    return '~Close';
+  }
+
+  // Logout button
+  private get logoutButton() {
+    return '//android.widget.Button[@content-desc="Logout"]';
+  }
+  
+  private get logoutButtonAlt() {
+    return '~Logout';
+  }
+  
+  private get logoutButtonByUiSelector() {
+    return 'android=new UiSelector().description("Logout")';
+  }
+
+  // Language selectors (from previous implementation)
   private get languageButtonEnglish() {
     return '//android.widget.Button[@content-desc="Language\nEnglish"]';
   }
@@ -31,39 +116,10 @@ export class ProfilePage extends BasePage {
     return '//android.widget.Button[@content-desc="Language\nहिंदी"]';
   }
 
-  // ENGLISH UI - Alternative selectors using accessibility id
-  private get languageButtonEnglishAlt() {
-    return '~Language\nEnglish';
-  }
-
-  private get languageButtonHindiAlt() {
-    return '~Language\nहिंदी';
-  }
-
-  // HINDI UI - Language button selectors (भाषा = Language in Hindi)
-  private get bhashButtonEnglish() {
-    return '//android.widget.Button[@content-desc="भाषा\nEnglish"]';
-  }
-
-  private get bhashButtonHindi() {
-    return '//android.widget.Button[@content-desc="भाषा\nहिंदी"]';
-  }
-
-  // HINDI UI - Alternative selectors using accessibility id
-  private get bhashButtonEnglishAlt() {
-    return '~भाषा\nEnglish';
-  }
-
-  private get bhashButtonHindiAlt() {
-    return '~भाषा\nहिंदी';
-  }
-
-  // Generic language selector - matches any language button
   private get languageButtonGeneric() {
     return '//android.widget.Button[contains(@content-desc, "Language") or contains(@content-desc, "भाषा")]';
   }
 
-  // Dropdown options (these remain same in both languages)
   private get englishDropdownOption() {
     return '//android.widget.Button[@content-desc="English"]';
   }
@@ -76,55 +132,54 @@ export class ProfilePage extends BasePage {
     return '//android.widget.ImageView[@content-desc="Home Tab 1 of 4"]';
   }
 
-  private get homeTabAlt() {
-    return '~Home\nTab 1 of 4';
-  }
-
   // Navigate to Profile
   async navigateToProfile(): Promise<boolean> {
     console.log("Navigating to Profile tab...");
     
-    try {
-      // Try primary selector first
-      let element = await $(this.profileTab);
-      if (await element.isExisting()) {
-        await element.click();
-        console.log("✓ Profile tab clicked");
-        await browser.pause(2000);
-        return true;
-      } else {
-        // Try alternative selector
-        element = await $(this.profileTabAlt);
+    const selectors = [
+      this.profileTab,
+      this.profileTabByInstance,
+      this.profileTabByXpath
+    ];
+    
+    for (const selector of selectors) {
+      try {
+        const element = await $(selector);
         if (await element.isExisting()) {
           await element.click();
-          console.log("✓ Profile tab clicked (alt)");
+          console.log("✓ Profile tab clicked");
           await browser.pause(2000);
           return true;
         }
+      } catch (error) {
+        // Continue to next selector
       }
-      
-      console.error("Profile tab not found");
-      await this.takeScreenshot('profile-navigation-failed');
-      return false;
-    } catch (error) {
-      console.error("Failed to navigate to Profile:", error);
-      await this.takeScreenshot('profile-navigation-error');
-      return false;
     }
+    
+    console.error("Profile tab not found");
+    await this.takeScreenshot('profile-navigation-failed');
+    return false;
   }
 
   // Check if profile page is displayed
   async isProfilePageDisplayed(): Promise<boolean> {
     try {
-      const element = await $(this.yourOrdersCard);
-      return await element.isDisplayed();
-    } catch {
-      try {
-        const element = await $(this.yourOrdersCardAlt);
-        return await element.isDisplayed();
-      } catch {
-        return false;
+      const selectors = [
+        this.yourOrdersCard,
+        this.yourOrdersCardAlt,
+        this.yourOrdersCardByUiSelector
+      ];
+      
+      for (const selector of selectors) {
+        const element = await $(selector);
+        if (await element.isDisplayed()) {
+          return true;
+        }
       }
+      
+      return false;
+    } catch {
+      return false;
     }
   }
 
@@ -132,70 +187,239 @@ export class ProfilePage extends BasePage {
   async clickYourOrders(): Promise<void> {
     console.log("Clicking on Your Orders...");
     
-    try {
-      let element = await $(this.yourOrdersCard);
-      if (await element.isExisting()) {
-        await element.click();
-        console.log("✓ Your Orders clicked");
-        await browser.pause(2000);
-        return;
-      } else {
-        element = await $(this.yourOrdersCardAlt);
+    const selectors = [
+      this.yourOrdersCard,
+      this.yourOrdersCardAlt,
+      this.yourOrdersCardByUiSelector
+    ];
+    
+    for (const selector of selectors) {
+      try {
+        const element = await $(selector);
         if (await element.isExisting()) {
           await element.click();
-          console.log("✓ Your Orders clicked (alt)");
+          console.log("✓ Your Orders clicked");
           await browser.pause(2000);
           return;
         }
+      } catch (error) {
+        // Continue to next selector
+      }
+    }
+    
+    throw new Error("Your Orders card not found");
+  }
+
+  // Click on Saved Addresses
+  async clickSavedAddresses(): Promise<void> {
+    console.log("Clicking on Saved Addresses...");
+    
+    const selectors = [
+      this.savedAddressesButton,
+      this.savedAddressesButtonAlt,
+      this.savedAddressesButtonByUiSelector
+    ];
+    
+    for (const selector of selectors) {
+      try {
+        const element = await $(selector);
+        if (await element.isExisting()) {
+          await element.click();
+          console.log("✓ Saved Addresses clicked");
+          await browser.pause(2000);
+          return;
+        }
+      } catch (error) {
+        // Continue to next selector
+      }
+    }
+    
+    throw new Error("Saved Addresses button not found");
+  }
+
+  // Go back from addresses
+  async goBackFromAddresses(): Promise<void> {
+    console.log("Going back from addresses...");
+    
+    try {
+      let element = await $(this.backButtonFromAddresses);
+      if (await element.isExisting()) {
+        await element.click();
+        console.log("✓ Back button clicked");
+        await browser.pause(1500);
+        return;
       }
       
-      throw new Error("Your Orders card not found");
+      element = await $(this.backButtonFromAddressesAlt);
+      if (await element.isExisting()) {
+        await element.click();
+        console.log("✓ Back button clicked (alt)");
+        await browser.pause(1500);
+        return;
+      }
+      
+      throw new Error("Back button not found");
     } catch (error) {
-      console.error("Failed to click Your Orders:", error);
+      console.error("Failed to go back:", error);
       throw error;
     }
   }
 
-  // UPDATED: Get current language - checks both English and Hindi UI
-  async getCurrentLanguage(): Promise<'English' | 'Hindi' | 'Unknown'> {
+  // Click on Profile button
+  async clickProfile(): Promise<void> {
+    console.log("Clicking on Profile button...");
+    
     try {
-      // Check all possible selectors for both English and Hindi UI
-      const selectors = [
-        // English UI selectors
-        { selector: this.languageButtonEnglish, lang: 'English' as const },
-        { selector: this.languageButtonHindi, lang: 'Hindi' as const },
-        { selector: this.languageButtonEnglishAlt, lang: 'English' as const },
-        { selector: this.languageButtonHindiAlt, lang: 'Hindi' as const },
-        // Hindi UI selectors (भाषा)
-        { selector: this.bhashButtonEnglish, lang: 'English' as const },
-        { selector: this.bhashButtonHindi, lang: 'Hindi' as const },
-        { selector: this.bhashButtonEnglishAlt, lang: 'English' as const },
-        { selector: this.bhashButtonHindiAlt, lang: 'Hindi' as const }
-      ];
-      
-      for (const { selector, lang } of selectors) {
-        try {
-          const element = await $(selector);
-          if (await element.isDisplayed()) {
-            console.log(`Found language button with selector: ${selector}`);
-            return lang;
-          }
-        } catch {
-          // Continue to next selector
-        }
+      let element = await $(this.profileButton);
+      if (await element.isExisting()) {
+        await element.click();
+        console.log("✓ Profile button clicked");
+        await browser.pause(2000);
+        return;
       }
       
-      // Try generic language button and check its text
+      element = await $(this.profileButtonAlt);
+      if (await element.isExisting()) {
+        await element.click();
+        console.log("✓ Profile button clicked (alt)");
+        await browser.pause(2000);
+        return;
+      }
+      
+      throw new Error("Profile button not found");
+    } catch (error) {
+      console.error("Failed to click Profile:", error);
+      throw error;
+    }
+  }
+
+  // Update profile details
+  async updateProfileDetails(fullName: string, email: string): Promise<boolean> {
+    console.log(`Updating profile: Name=${fullName}, Email=${email}`);
+    
+    try {
+      // Update Full Name
+      let nameInput = await $(this.fullNameInput);
+      if (!await nameInput.isExisting()) {
+        nameInput = await $(this.fullNameInputByUiSelector);
+      }
+      
+      await nameInput.clearValue();
+      await nameInput.setValue(fullName);
+      console.log("✓ Full name updated");
+      
+      // Update Email
+      let emailInput = await $(this.emailInput);
+      if (!await emailInput.isExisting()) {
+        emailInput = await $(this.emailInputByUiSelector);
+      }
+      
+      await emailInput.clearValue();
+      await emailInput.setValue(email);
+      console.log("✓ Email updated");
+      
+      // Click Save
+      let saveBtn = await $(this.saveButton);
+      if (!await saveBtn.isExisting()) {
+        saveBtn = await $(this.saveButtonAlt);
+      }
+      
+      await saveBtn.click();
+      console.log("✓ Save button clicked");
+      await browser.pause(2000);
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      return false;
+    }
+  }
+
+  // Close edit profile
+  async closeEditProfile(): Promise<void> {
+    console.log("Closing edit profile...");
+    
+    try {
+      let element = await $(this.closeButton);
+      if (await element.isExisting()) {
+        await element.click();
+        console.log("✓ Close button clicked");
+        await browser.pause(1500);
+        return;
+      }
+      
+      element = await $(this.closeButtonAlt);
+      if (await element.isExisting()) {
+        await element.click();
+        console.log("✓ Close button clicked (alt)");
+        await browser.pause(1500);
+        return;
+      }
+      
+      throw new Error("Close button not found");
+    } catch (error) {
+      console.error("Failed to close edit profile:", error);
+      throw error;
+    }
+  }
+
+  // Scroll to bottom
+  async scrollToBottom(): Promise<void> {
+    console.log("Scrolling to bottom...");
+    
+    for (let i = 0; i < 5; i++) {
+      await SwipeUtils.swipeUp(0.6);
+      await browser.pause(300);
+    }
+    
+    await browser.pause(1000);
+  }
+
+  // Logout
+  async logout(): Promise<boolean> {
+    console.log("Logging out...");
+    
+    const selectors = [
+      this.logoutButton,
+      this.logoutButtonAlt,
+      this.logoutButtonByUiSelector
+    ];
+    
+    for (const selector of selectors) {
       try {
-        const genericButton = await $(this.languageButtonGeneric);
-        if (await genericButton.isDisplayed()) {
-          const text = await genericButton.getAttribute('content-desc');
-          console.log(`Generic button text: ${text}`);
-          if (text.includes('English')) return 'English';
-          if (text.includes('हिंदी')) return 'Hindi';
+        const element = await $(selector);
+        if (await element.isExisting()) {
+          await element.click();
+          console.log("✓ Logout button clicked");
+          await browser.pause(3000);
+          return true;
         }
-      } catch {
-        // Continue
+      } catch (error) {
+        // Continue to next selector
+      }
+    }
+    
+    console.error("Logout button not found");
+    return false;
+  }
+
+  // Get current language
+  async getCurrentLanguage(): Promise<'English' | 'Hindi' | 'Unknown'> {
+    try {
+      // Check for language buttons
+      if (await $(this.languageButtonEnglish).isDisplayed()) {
+        return 'English';
+      }
+      if (await $(this.languageButtonHindi).isDisplayed()) {
+        return 'Hindi';
+      }
+      
+      // Check generic button
+      const genericButton = await $(this.languageButtonGeneric);
+      if (await genericButton.isDisplayed()) {
+        const text = await genericButton.getAttribute('content-desc');
+        if (text.includes('English')) return 'English';
+        if (text.includes('हिंदी')) return 'Hindi';
       }
       
       return 'Unknown';
@@ -204,7 +428,7 @@ export class ProfilePage extends BasePage {
     }
   }
 
-  // UPDATED: Scroll to find language option - works for both UIs
+  // Scroll to find language option
   async scrollToLanguageOption(): Promise<boolean> {
     console.log("Scrolling to find Language option...");
     
@@ -220,27 +444,17 @@ export class ProfilePage extends BasePage {
     
     while (scrollCount < maxScrolls) {
       try {
-        // Check if we can find the language option
         const currentLang = await this.getCurrentLanguage();
         if (currentLang !== 'Unknown') {
           console.log(`✓ Language option found: ${currentLang}`);
-          return true;
-        }
-        
-        // Also check for generic language button
-        const genericButton = await $(this.languageButtonGeneric);
-        if (await genericButton.isDisplayed()) {
-          console.log("✓ Found generic language button");
           return true;
         }
       } catch {
         // Continue scrolling
       }
       
-      // Swipe up to scroll down
       await SwipeUtils.swipeUp(0.4);
       scrollCount++;
-      console.log(`Scroll attempt ${scrollCount} of ${maxScrolls}`);
       await browser.pause(500);
     }
     
@@ -248,226 +462,58 @@ export class ProfilePage extends BasePage {
     return false;
   }
 
-  // UPDATED: Find language button - works for both UIs
-  async findLanguageButton(): Promise<ReturnType<typeof $> | null> {
-    const selectors = [
-      // English UI selectors
-      this.languageButtonEnglish,
-      this.languageButtonHindi,
-      this.languageButtonEnglishAlt,
-      this.languageButtonHindiAlt,
-      // Hindi UI selectors
-      this.bhashButtonEnglish,
-      this.bhashButtonHindi,
-      this.bhashButtonEnglishAlt,
-      this.bhashButtonHindiAlt,
-      // Generic selector
-      this.languageButtonGeneric
-    ];
-    
-    for (const selector of selectors) {
-      try {
-        const element = await $(selector);
-        if (await element.isDisplayed()) {
-          console.log(`Found language button with selector: ${selector}`);
-          return element;
-        }
-      } catch {
-        // Continue to next selector
-      }
-    }
-    
-    return null;
-  }
-
-  // Click on language dropdown arrow using coordinates
-  async clickLanguageDropdownArrow(): Promise<boolean> {
-    console.log("Clicking on language dropdown arrow...");
-    
-    try {
-      // Find the language button
-      const languageElement = await this.findLanguageButton();
-      
-      if (!languageElement) {
-        console.error("Language button not found");
-        return false;
-      }
-      
-      // Get element location and size
-      const location = await languageElement.getLocation();
-      const size = await languageElement.getSize();
-      
-      console.log(`Element location: x=${location.x}, y=${location.y}`);
-      console.log(`Element size: width=${size.width}, height=${size.height}`);
-      
-      // Calculate tap position (85% to the right for dropdown arrow)
-      const tapX = location.x + (size.width * 0.85);
-      const tapY = location.y + (size.height / 2);
-      
-      console.log(`Tapping at coordinates: (${tapX}, ${tapY})`);
-      
-      // Perform tap action at calculated coordinates
-      await browser.action('pointer')
-        .move({ x: Math.round(tapX), y: Math.round(tapY) })
-        .down({ button: 0 })
-        .pause(100)
-        .up({ button: 0 })
-        .perform();
-      
-      console.log("✓ Tapped on dropdown arrow");
-      await browser.pause(1500); // Wait for dropdown animation
-      
-      // Verify dropdown opened
-      const englishOption = await $(this.englishDropdownOption);
-      const hindiOption = await $(this.hindiDropdownOption);
-      
-      if (await englishOption.isDisplayed() || await hindiOption.isDisplayed()) {
-        console.log("✓ Dropdown menu opened successfully");
-        return true;
-      } else {
-        console.warn("Dropdown may not have opened");
-        return false;
-      }
-      
-    } catch (error) {
-      console.error("Failed to click dropdown arrow:", error);
-      return false;
-    }
-  }
-
-  // Click on language button
-  async clickLanguageButton(): Promise<void> {
-    console.log("Opening language dropdown...");
-    
-    try {
-      // First ensure language option is visible
-      const isVisible = await this.scrollToLanguageOption();
-      if (!isVisible) {
-        throw new Error("Could not find language option after scrolling");
-      }
-      
-      // Try clicking the dropdown arrow first
-      const dropdownOpened = await this.clickLanguageDropdownArrow();
-      
-      if (dropdownOpened) {
-        return;
-      }
-      
-      // Fallback: Try regular click on the entire element
-      console.log("Trying fallback method - clicking entire element...");
-      const languageElement = await this.findLanguageButton();
-      
-      if (!languageElement) {
-        throw new Error("Language button not found");
-      }
-      
-      await languageElement.click();
-      await browser.pause(1500);
-      
-      // Verify dropdown opened
-      const englishOption = await $(this.englishDropdownOption);
-      const hindiOption = await $(this.hindiDropdownOption);
-      
-      if (!await englishOption.isDisplayed() && !await hindiOption.isDisplayed()) {
-        throw new Error("Could not open language dropdown");
-      }
-      
-      console.log("✓ Language dropdown opened");
-      
-    } catch (error) {
-      console.error("Failed to open language dropdown:", error);
-      await this.takeScreenshot('language-dropdown-error');
-      throw error;
-    }
-  }
-
-  // SIMPLIFIED: Change language
+  // Change language (reusing existing implementation)
   async changeLanguage(toLanguage: 'Hindi' | 'English'): Promise<void> {
-    console.log(`\n=== Changing language to ${toLanguage} ===`);
+    console.log(`Changing language to ${toLanguage}...`);
     
     try {
-      // Step 1: Ensure we're on profile page and can see language option
-      // Step 1: Ensure we're on profile page and can see language option
-      await browser.pause(1000);
-      
-      // Step 2: Scroll to language option
-      const foundLanguage = await this.scrollToLanguageOption();
-      if (!foundLanguage) {
-        throw new Error("Could not find language option");
-      }
-      
-      // Step 3: Check current language
       const currentLang = await this.getCurrentLanguage();
-      console.log(`Current language detected: ${currentLang}`);
+      console.log(`Current language: ${currentLang}`);
       
       if (currentLang === toLanguage) {
         console.log(`Language is already set to ${toLanguage}`);
         return;
       }
       
-      // Take screenshot before change
-      await this.takeScreenshot(`before-language-change-${currentLang}`);
+      // Click on language button
+      const genericButton = await $(this.languageButtonGeneric);
+      await genericButton.click();
+      console.log("✓ Language dropdown opened");
+      await browser.pause(1500);
       
-      // Step 4: Open dropdown
-      await this.clickLanguageButton();
-      await browser.pause(1000);
-      
-      // Step 5: Select the desired language
+      // Select the desired language
       if (toLanguage === 'Hindi') {
         const hindiOption = await $(this.hindiDropdownOption);
         await hindiOption.waitForDisplayed({ timeout: 5000 });
-        await browser.pause(500);
         await hindiOption.click();
-        console.log("✓ Clicked on 'हिंदी' option");
+        console.log("✓ Hindi selected");
       } else {
         const englishOption = await $(this.englishDropdownOption);
         await englishOption.waitForDisplayed({ timeout: 5000 });
-        await browser.pause(500);
         await englishOption.click();
-        console.log("✓ Clicked on 'English' option");
+        console.log("✓ English selected");
       }
       
-      // Step 6: Wait for language change to take effect
-      console.log("Waiting for language change to apply...");
       await browser.pause(3000);
-      
-      // Step 7: Verify language changed
-      const newLang = await this.getCurrentLanguage();
-      console.log(`Language after change: ${newLang}`);
-      
-      if (newLang === toLanguage || newLang === 'Unknown') {
-        console.log(`✓ Successfully changed language to ${toLanguage}`);
-        await this.takeScreenshot(`language-changed-to-${toLanguage.toLowerCase()}`);
-      } else {
-        console.warn(`Language verification uncertain. Expected: ${toLanguage}, Found: ${newLang}`);
-      }
+      console.log(`✓ Language changed to ${toLanguage}`);
       
     } catch (error) {
-      console.error(`Failed to change language to ${toLanguage}:`, error);
-      await this.takeScreenshot('language-change-error');
+      console.error(`Failed to change language: ${error}`);
       throw error;
     }
   }
 
-  // Navigate back to Home
+  // Navigate to Home
   async navigateToHome(): Promise<boolean> {
-    console.log("Navigating back to Home tab...");
+    console.log("Navigating to Home tab...");
     
     try {
-      let element = await $(this.homeTab);
+      const element = await $(this.homeTab);
       if (await element.isExisting()) {
         await element.click();
         console.log("✓ Home tab clicked");
         await browser.pause(2000);
         return true;
-      } else {
-        element = await $(this.homeTabAlt);
-        if (await element.isExisting()) {
-          await element.click();
-          console.log("✓ Home tab clicked (alt)");
-          await browser.pause(2000);
-          return true;
-        }
       }
       
       console.error("Home tab not found");
@@ -478,9 +524,9 @@ export class ProfilePage extends BasePage {
     }
   }
 
-  // Scroll back to top of profile
+  // Scroll to top
   async scrollToTop(): Promise<void> {
-    console.log("Scrolling back to top...");
+    console.log("Scrolling to top...");
     
     for (let i = 0; i < 5; i++) {
       await SwipeUtils.swipeDown(0.4);
@@ -488,20 +534,5 @@ export class ProfilePage extends BasePage {
     }
     
     await browser.pause(1000);
-  }
-
-  // Check if dropdown is closed
-  async isDropdownClosed(): Promise<boolean> {
-    try {
-      const englishOption = await $(this.englishDropdownOption);
-      const hindiOption = await $(this.hindiDropdownOption);
-      
-      const englishVisible = await englishOption.isDisplayed();
-      const hindiVisible = await hindiOption.isDisplayed();
-      
-      return !englishVisible && !hindiVisible;
-    } catch {
-      return true;
-    }
   }
 }

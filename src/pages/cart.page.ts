@@ -54,7 +54,7 @@ export class CartPage extends BasePage {
   private get clearCartConfirmButton() {
     return '//android.widget.Button[@text="Clear" or @content-desc="Clear"]';
   }
-
+  
   // Improved swipe method with smaller increments
   async swipeUpSmall() {
     console.log("Performing small swipe up...");

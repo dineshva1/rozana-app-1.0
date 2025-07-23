@@ -114,6 +114,14 @@ export class CategoriesPage extends BasePage {
     return 'android=new UiSelector().descriptionContains("View Cart")';
   }
 
+private getCategorySelector(categoryName: string) {
+    return `//android.widget.ImageView[@content-desc="${categoryName}"]`;
+  }
+  
+  // Categories container
+  private get categoriesContainer() {
+    return '//android.widget.HorizontalScrollView[.//android.widget.ImageView[@content-desc="All"]]';
+  }
   // Add button selector for products in detail page
   private getAddButtonByIndex(index: number) {
     return `(//android.view.View[@content-desc="Add"])[${index}]`;
@@ -1182,4 +1190,109 @@ async scrollToEnergyHealthSafe(): Promise<void> {
       return { productsAdded: totalProductsAdded, orderPlaced: false };
     }
   }
+  // Check if a category is visible
+  // async isCategoryVisible(categoryName: string): Promise<boolean> {
+  //   try {
+  //     const categoryElement = await $(this.getCategorySelector(categoryName));
+  //     return await categoryElement.isExisting();
+  //   } catch (error) {
+  //     return false;
+  //   }
+  // }
+  
+ // Check if a category is visible
+  async isCategoryVisible(categoryName: string): Promise<boolean> {
+    try {
+      const categoryElement = await $(this.getCategorySelector(categoryName));
+      return await categoryElement.isExisting();
+    } catch (error) {
+      return false;
+    }
+  }
+  
+  // Click on a category
+  async clickCategory(categoryName: string): Promise<boolean> {
+    try {
+      console.log(`Clicking on ${categoryName} category...`);
+      const categorySelector = this.getCategorySelector(categoryName);
+      
+      // Don't wait for element if it's not visible yet
+      const categoryElement = await $(categorySelector);
+      if (await categoryElement.isExisting()) {
+        await categoryElement.click();
+        console.log(`✓ ${categoryName} category clicked`);
+        return true;
+      }
+      
+      console.log(`${categoryName} category not found`);
+      return false;
+      
+    } catch (error) {
+      console.error(`Failed to click ${categoryName} category:`, error);
+      return false;
+    }
+  }
+  
+  // Swipe left on categories bar
+  async swipeLeftOnCategories(): Promise<void> {
+    try {
+      const { width } = await browser.getWindowSize();
+      
+      // Swipe on the categories area - using fixed Y coordinate around 360-520
+      await browser.action('pointer')
+        .move({ duration: 0, x: width * 0.8, y: 360 })
+        .down({ button: 0 })
+        .move({ duration: 1000, x: width * 0.2, y: 360 })
+        .up({ button: 0 })
+        .perform();
+      
+      await browser.pause(500);
+      
+    } catch (error) {
+      console.error("Failed to swipe categories:", error);
+    }
+  }
+  
+  // Aggressive swipe left SPECIFICALLY on categories area for reaching Energy
+  async aggressiveSwipeLeftOnCategories(): Promise<void> {
+    try {
+      console.log("Performing aggressive category swipe...");
+      
+      // Using your exact coordinates that are in the categories area
+      await browser.action('pointer')
+        .move({ duration: 0, x: 799, y: 520 })
+        .down({ button: 0 })
+        .move({ duration: 1000, x: 95, y: 524 })
+        .up({ button: 0 })
+        .perform();
+      
+      await browser.pause(800);
+      
+    } catch (error) {
+      console.error("Failed aggressive swipe:", error);
+    }
+  }
+  
+  // Swipe to find a specific category
+  async swipeToFindCategory(categoryName: string, maxSwipes: number = 5): Promise<boolean> {
+    console.log(`Swiping to find ${categoryName} category...`);
+    
+    for (let i = 0; i < maxSwipes; i++) {
+      // Check if category is visible
+      if (await this.isCategoryVisible(categoryName)) {
+        console.log(`✓ ${categoryName} category found after ${i} swipes`);
+        return true;
+      }
+      
+      console.log(`Swipe ${i + 1}/${maxSwipes}`);
+      await this.aggressiveSwipeLeftOnCategories();
+    }
+    
+    console.log(`${categoryName} category not found after ${maxSwipes} swipes`);
+    return false;
+  }
 }
+
+
+
+

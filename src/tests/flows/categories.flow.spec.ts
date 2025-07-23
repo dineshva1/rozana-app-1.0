@@ -28,6 +28,83 @@ describe("Complete Shopping Flow - Categories to Order", () => {
       expect(isHomePage).toBe(true);
       console.log("✅ Home page confirmed");
       
+      // Step 1.5: Ensure categories tab is visible
+      console.log("\n🔍 Step 1.5: Ensuring categories tab is visible...");
+      
+      const categoriesTabSelector = '//android.widget.ImageView[@content-desc="Categories\nTab 2 of 4"]';
+      let categoriesTab = await $(categoriesTabSelector);
+      let isTabVisible = await categoriesTab.isDisplayed();
+      
+      if (!isTabVisible) {
+        console.log("⚠️ Categories tab not visible, swiping down to reveal it...");
+        
+        // Try swiping down up to 5 times to reveal the bottom navigation
+        for (let i = 0; i < 5; i++) {
+          await browser.execute("mobile: swipeGesture", {
+            left: 200,
+            top: 600,
+            width: 200,
+            height: 400,
+            direction: "down",
+            percent: 0.75
+          });
+          
+          await TestHelpers.waitForApp(1000);
+          
+          // Check if tab is now visible
+          categoriesTab = await $(categoriesTabSelector);
+          isTabVisible = await categoriesTab.isDisplayed();
+          
+          if (isTabVisible) {
+            console.log(`✅ Categories tab visible after ${i + 1} swipe(s)`);
+            break;
+          }
+        }
+        
+        // If still not visible, try alternative approach
+        if (!isTabVisible) {
+          console.log("⚠️ Trying alternative: Scroll to top of page");
+          
+          // Try scrolling to the very top
+          await browser.execute("mobile: swipeGesture", {
+            left: 200,
+            top: 800,
+            width: 200,
+            height: 600,
+            direction: "down",
+            percent: 1.0
+          });
+          
+          await TestHelpers.waitForApp(1500);
+          
+          categoriesTab = await $(categoriesTabSelector);
+          isTabVisible = await categoriesTab.isDisplayed();
+        }
+        
+        // Final check
+        if (!isTabVisible) {
+          // If cart banner is blocking, try dismissing it
+          const viewCartButton = await $('//android.widget.Button[@text="View Cart"]');
+          if (await viewCartButton.isExisting()) {
+            console.log("⚠️ Cart banner detected, attempting to dismiss...");
+            
+            // Try clicking outside the banner or pressing back
+            await browser.back();
+            await TestHelpers.waitForApp(1000);
+            
+            categoriesTab = await $(categoriesTabSelector);
+            isTabVisible = await categoriesTab.isDisplayed();
+          }
+        }
+      }
+      
+      // Verify tab is now visible
+      expect(isTabVisible).toBe(true);
+      console.log("✅ Categories tab is visible and accessible");
+      
+      // Add a small pause to ensure UI is stable
+      await TestHelpers.waitForApp(1000);
+      
       // Step 2: Navigate to categories and add products
       console.log("\n📦 Step 2: Shopping from categories...");
       const categoriesResult = await categoriesPage.testCategoriesFlowWithCheckout();
@@ -83,6 +160,7 @@ describe("Complete Shopping Flow - Categories to Order", () => {
       
       console.log(TestHelpers.formatSuccessLog("Complete shopping flow test passed!"));
       console.log("\n📊 === TEST SUMMARY ===");
+      console.log("✅ Categories tab made visible: SUCCESS");
       console.log("✅ Categories shopping: SUCCESS");
       console.log("✅ View Cart clicked: SUCCESS");
       console.log("✅ Address changed: SUCCESS");

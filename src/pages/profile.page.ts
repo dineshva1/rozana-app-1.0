@@ -53,42 +53,32 @@ export class ProfilePage extends BasePage {
   }
 
   // Profile button
-  private get profileButton() {
-    return '//android.widget.Button[@content-desc="Profile"]';
-  }
+
   
   private get profileButtonAlt() {
     return '~Profile';
   }
 
   // Edit Profile elements
-  private get fullNameInput() {
-    return '//android.widget.EditText[@text="Test"]';
-  }
+
   
   private get fullNameInputByUiSelector() {
     return 'android=new UiSelector().text("Test")';
   }
   
-  private get emailInput() {
-    return '//android.widget.EditText[@text="test@somethibg.com"]';
-  }
+
   
   private get emailInputByUiSelector() {
     return 'android=new UiSelector().text("test@somethibg.com")';
   }
   
-  private get saveButton() {
-    return '//android.widget.Button[@content-desc="Save"]';
-  }
+ 
   
   private get saveButtonAlt() {
     return '~Save';
   }
   
-  private get closeButton() {
-    return '//android.widget.Button[@content-desc="Close"]';
-  }
+
   
   private get closeButtonAlt() {
     return '~Close';
@@ -131,7 +121,67 @@ export class ProfilePage extends BasePage {
   private get homeTab() {
     return '//android.widget.ImageView[@content-desc="Home Tab 1 of 4"]';
   }
+  // Profile button selectors
+  private get profileButton() {
+    return '//android.widget.Button[@content-desc="Profile"]';
+  }
+  
+  private get profileButtonByAccessibility() {
+    return '~Profile';
+  }
+  
+  private get profileButtonByUiSelector() {
+    return 'android=new UiSelector().description("Profile")';
+  }
 
+  // Edit Profile page elements
+  private get fullNameInput() {
+    return '//android.widget.EditText[1]'; // First EditText for Full Name
+  }
+  
+  private get fullNameInputByIndex() {
+    return 'android=new UiSelector().className("android.widget.EditText").instance(0)';
+  }
+  
+  private get emailInput() {
+    return '//android.widget.EditText[2]'; // Second EditText for Email
+  }
+  
+  private get emailInputByIndex() {
+    return 'android=new UiSelector().className("android.widget.EditText").instance(1)';
+  }
+  
+  // Dynamic selectors for existing values
+  private getFullNameInputWithText(text: string) {
+    return `//android.widget.EditText[@text="${text}"]`;
+  }
+  
+  private getEmailInputWithText(text: string) {
+    return `//android.widget.EditText[@text="${text}"]`;
+  }
+
+  // Save button selectors
+  private get saveButton() {
+    return '//android.widget.Button[@content-desc="Save"]';
+  }
+  
+  private get saveButtonByAccessibility() {
+    return '~Save';
+  }
+  
+  private get saveButtonByUiSelector() {
+    return 'android=new UiSelector().description("Save")';
+  }
+
+  // Close button (if needed)
+  private get closeButton() {
+    return '//android.widget.Button[@content-desc="Close" or @text="Close"]';
+  }
+
+  // Edit Profile Header
+  private get editProfileHeader() {
+    return '//*[@text="Edit Profile" or contains(@content-desc, "Edit Profile")]';
+  }
   // Navigate to Profile
   async navigateToProfile(): Promise<boolean> {
     console.log("Navigating to Profile tab...");
@@ -265,75 +315,6 @@ export class ProfilePage extends BasePage {
     }
   }
 
-  // Click on Profile button
-  async clickProfile(): Promise<void> {
-    console.log("Clicking on Profile button...");
-    
-    try {
-      let element = await $(this.profileButton);
-      if (await element.isExisting()) {
-        await element.click();
-        console.log("✓ Profile button clicked");
-        await browser.pause(2000);
-        return;
-      }
-      
-      element = await $(this.profileButtonAlt);
-      if (await element.isExisting()) {
-        await element.click();
-        console.log("✓ Profile button clicked (alt)");
-        await browser.pause(2000);
-        return;
-      }
-      
-      throw new Error("Profile button not found");
-    } catch (error) {
-      console.error("Failed to click Profile:", error);
-      throw error;
-    }
-  }
-
-  // Update profile details
-  async updateProfileDetails(fullName: string, email: string): Promise<boolean> {
-    console.log(`Updating profile: Name=${fullName}, Email=${email}`);
-    
-    try {
-      // Update Full Name
-      let nameInput = await $(this.fullNameInput);
-      if (!await nameInput.isExisting()) {
-        nameInput = await $(this.fullNameInputByUiSelector);
-      }
-      
-      await nameInput.clearValue();
-      await nameInput.setValue(fullName);
-      console.log("✓ Full name updated");
-      
-      // Update Email
-      let emailInput = await $(this.emailInput);
-      if (!await emailInput.isExisting()) {
-        emailInput = await $(this.emailInputByUiSelector);
-      }
-      
-      await emailInput.clearValue();
-      await emailInput.setValue(email);
-      console.log("✓ Email updated");
-      
-      // Click Save
-      let saveBtn = await $(this.saveButton);
-      if (!await saveBtn.isExisting()) {
-        saveBtn = await $(this.saveButtonAlt);
-      }
-      
-      await saveBtn.click();
-      console.log("✓ Save button clicked");
-      await browser.pause(2000);
-      
-      return true;
-    } catch (error) {
-      console.error("Failed to update profile:", error);
-      return false;
-    }
-  }
 
   // Close edit profile
   async closeEditProfile(): Promise<void> {
@@ -360,6 +341,269 @@ export class ProfilePage extends BasePage {
     } catch (error) {
       console.error("Failed to close edit profile:", error);
       throw error;
+    }
+  }
+   // Click on Profile button to open Edit Profile page
+  async clickProfile(): Promise<boolean> {
+    console.log("\n📍 Clicking on Profile button to open Edit Profile...");
+    
+    const selectors = [
+      this.profileButton,
+      this.profileButtonByAccessibility,
+      this.profileButtonByUiSelector
+    ];
+    
+    for (const selector of selectors) {
+      try {
+        const element = await $(selector);
+        if (await element.isExisting()) {
+          await element.click();
+          console.log("✅ Profile button clicked");
+          await browser.pause(2000);
+          
+          // Verify Edit Profile page opened
+          const editProfileHeader = await $(this.editProfileHeader);
+          if (await editProfileHeader.isExisting()) {
+            console.log("✅ Edit Profile page opened");
+          }
+          
+          return true;
+        }
+      } catch (error) {
+        // Continue to next selector
+      }
+    }
+    
+    console.error("❌ Failed to click Profile button");
+    return false;
+  }
+
+  // Clear and update Full Name field
+  private async updateFullName(newName: string): Promise<boolean> {
+    console.log(`\n📝 Updating Full Name to: ${newName}`);
+    
+    try {
+      // Try multiple selectors for the full name input
+      const selectors = [
+        this.fullNameInput,
+        this.fullNameInputByIndex
+      ];
+      
+      for (const selector of selectors) {
+        try {
+          const element = await $(selector);
+          if (await element.isExisting()) {
+            // Click on the field
+            await element.click();
+            await browser.pause(500);
+            
+            // Clear existing value
+            await element.clearValue();
+            await browser.pause(500);
+            
+            // Enter new value
+            await element.setValue(newName);
+            await browser.pause(500);
+            
+            console.log("✅ Full Name updated");
+            return true;
+          }
+        } catch (error) {
+          // Continue to next selector
+        }
+      }
+      
+      console.error("❌ Failed to update Full Name");
+      return false;
+    } catch (error) {
+      console.error("Error updating full name:", error);
+      return false;
+    }
+  }
+
+  // Clear and update Email field
+  private async updateEmail(newEmail: string): Promise<boolean> {
+    console.log(`\n📧 Updating Email to: ${newEmail}`);
+    
+    try {
+      // Try multiple selectors for the email input
+      const selectors = [
+        this.emailInput,
+        this.emailInputByIndex
+      ];
+      
+      for (const selector of selectors) {
+        try {
+          const element = await $(selector);
+          if (await element.isExisting()) {
+            // Click on the field
+            await element.click();
+            await browser.pause(500);
+            
+            // Clear existing value
+            await element.clearValue();
+            await browser.pause(500);
+            
+            // Enter new value
+            await element.setValue(newEmail);
+            await browser.pause(500);
+            
+            // Hide keyboard if visible
+            try {
+              await browser.hideKeyboard();
+            } catch (e) {
+              // Keyboard might not be visible
+            }
+            
+            console.log("✅ Email updated");
+            return true;
+          }
+        } catch (error) {
+          // Continue to next selector
+        }
+      }
+      
+      console.error("❌ Failed to update Email");
+      return false;
+    } catch (error) {
+      console.error("Error updating email:", error);
+      return false;
+    }
+  }
+
+  // Click Save button
+  private async clickSave(): Promise<boolean> {
+    console.log("\n💾 Clicking Save button...");
+    
+    const selectors = [
+      this.saveButton,
+      this.saveButtonByAccessibility,
+      this.saveButtonByUiSelector
+    ];
+    
+    for (const selector of selectors) {
+      try {
+        const element = await $(selector);
+        if (await element.isExisting()) {
+          await element.click();
+          console.log("✅ Save button clicked");
+          await browser.pause(2000);
+          return true;
+        }
+      } catch (error) {
+        // Continue to next selector
+      }
+    }
+    
+    console.error("❌ Failed to click Save button");
+    return false;
+  }
+
+  // Complete profile update flow
+  async updateProfileDetails(newName: string, newEmail: string): Promise<boolean> {
+    console.log("\n=== Starting Profile Update ===");
+    console.log(`New Name: ${newName}`);
+    console.log(`New Email: ${newEmail}`);
+    
+    try {
+      // Update Full Name
+      if (!await this.updateFullName(newName)) {
+        throw new Error("Failed to update full name");
+      }
+      
+      // Update Email
+      if (!await this.updateEmail(newEmail)) {
+        throw new Error("Failed to update email");
+      }
+      
+      // Save changes
+      if (!await this.clickSave()) {
+        throw new Error("Failed to save profile changes");
+      }
+      
+      console.log("✅ Profile updated successfully");
+      
+      // Wait for save operation to complete
+      await browser.pause(2000);
+      
+      // Verify we're back on profile page
+      const profileDisplayed = await this.isProfilePageDisplayed();
+      if (profileDisplayed) {
+        console.log("✅ Returned to profile page after save");
+      }
+      
+      return true;
+      
+    } catch (error) {
+      console.error("❌ Profile update failed:", error);
+      
+      // Try to close if still on edit page
+      try {
+        const closeBtn = await $(this.closeButton);
+        if (await closeBtn.isExisting()) {
+          await closeBtn.click();
+          console.log("ℹ️ Closed edit profile page");
+        }
+      } catch (e) {
+        // Ignore if close button not found
+      }
+      
+      return false;
+    }
+  }
+
+  // Generate random profile data
+  generateRandomProfileData(): { name: string; email: string } {
+    const timestamp = Date.now();
+    const randomNum = Math.floor(Math.random() * 1000);
+    
+    return {
+      name: `TestUser${randomNum}`,
+      email: `testuser${timestamp}@example.com`
+    };
+  }
+
+  // Update profile with random data
+  async updateProfileWithRandomData(): Promise<boolean> {
+    const randomData = this.generateRandomProfileData();
+    console.log("\n🎲 Updating profile with random data:");
+    console.log(`Name: ${randomData.name}`);
+    console.log(`Email: ${randomData.email}`);
+    
+    return await this.updateProfileDetails(randomData.name, randomData.email);
+  }
+
+  // Get current profile values (for verification)
+  async getCurrentProfileValues(): Promise<{ name: string | null; email: string | null }> {
+    try {
+      let currentName = null;
+      let currentEmail = null;
+      
+      // Try to get current name
+      try {
+        const nameElement = await $(this.fullNameInput);
+        if (await nameElement.isExisting()) {
+          currentName = await nameElement.getText();
+        }
+      } catch (e) {
+        // Continue
+      }
+      
+      // Try to get current email
+      try {
+        const emailElement = await $(this.emailInput);
+        if (await emailElement.isExisting()) {
+          currentEmail = await emailElement.getText();
+        }
+      } catch (e) {
+        // Continue
+      }
+      
+      return { name: currentName, email: currentEmail };
+      
+    } catch (error) {
+      console.error("Error getting current profile values:", error);
+      return { name: null, email: null };
     }
   }
 

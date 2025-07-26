@@ -88,14 +88,19 @@ describe("Profile Flow", () => {
       await TestHelpers.waitForApp(1000);
       
       // Step 8: Edit Profile
-      console.log("\nStep 8: Editing Profile...");
-      await profilePage.clickProfile();
-      await TestHelpers.takeScreenshot('edit-profile-page');
-      
-      // Update profile details
-      const profileUpdated = await profilePage.updateProfileDetails('Test1', 'testrozana1@gmail.com');
-      expect(profileUpdated).toBe(true);
-      console.log(TestHelpers.formatSuccessLog("Profile updated successfully"));
+  console.log("\nStep 8: Editing Profile...");
+  await profilePage.clickProfile();
+  await TestHelpers.takeScreenshot('edit-profile-page');
+
+  // Option 1: Update with specific values
+  const profileUpdated = await profilePage.updateProfileDetails('TestUser', 'testuser123@example.com');
+
+  // Option 2: Update with random values
+  // const profileUpdated = await profilePage.updateProfileWithRandomData();
+
+  expect(profileUpdated).toBe(true);
+  console.log(TestHelpers.formatSuccessLog("Profile updated successfully"));
+  await TestHelpers.takeScreenshot('profile-updated');
       
       
       // // Step 9: Language change flow
@@ -130,9 +135,8 @@ describe("Profile Flow", () => {
       
       // Step 11: Login flow
       console.log("\nStep 11: Performing login flow...");
-      const loginSuccess = await loginPage.performCompleteLogin(
-        userData.validUser.mobileNumber,
-        userData.validUser.otp
+      const loginSuccess = await loginPage.performCompleteLoginProduction(
+        userData.productionUser.mobileNumber
       );
       expect(loginSuccess).toBe(true);
       console.log(TestHelpers.formatSuccessLog("Logged in successfully"));

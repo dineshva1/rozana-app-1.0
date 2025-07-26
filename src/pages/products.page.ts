@@ -1,30 +1,55 @@
-// src/pages/products.page.ts - Fixed swipe methods
+// src/pages/products.page.ts - Updated with new methods
 
 import { BasePage } from './base.page';
 import { browser } from '@wdio/globals';
 
 export class ProductsPage extends BasePage {
-  // View cart selector
+  // Add button selectors
+  private getAddButtonByIndex(index: number): string {
+    return `(//android.view.View[@content-desc="Add"])[${index + 1}]`;
+  }
+  
+  private getAddButtonByUiSelector(index: number): string {
+    return `android=new UiSelector().description("Add").instance(${index})`;
+  }
+  
+  // View cart selector - dynamic to handle different totals
   private get viewCartButton() {
     return '//android.view.View[contains(@content-desc, "Cart Total") and contains(@content-desc, "View Cart")]';
   }
   
-  // Add first available product
-  async addFirstAvailableProduct(): Promise<boolean> {
+  private get viewCartButtonAlt() {
+    return '//android.view.View[contains(@content-desc, "View Cart")]';
+  }
+  
+  // Add product by specific index
+  async addProductByIndex(index: number = 0): Promise<boolean> {
     try {
-      console.log("Looking for Add button...");
+      console.log(`Looking for Add button at index ${index}...`);
       
-      // Find all Add buttons
+      const selectors = [
+        this.getAddButtonByIndex(index),
+        this.getAddButtonByUiSelector(index)
+      ];
+      
+      for (const selector of selectors) {
+        const element = await $(selector);
+        if (await element.isExisting()) {
+          await element.click();
+          console.log(`✅ Product added (index ${index})`);
+          return true;
+        }
+      }
+      
+      // Fallback: try to find any Add button
       const addButtons = await $$('//android.view.View[@content-desc="Add"]');
-      const buttonCount = await addButtons.length;
-      
-      if (buttonCount > 0) {
-        await addButtons[0].click();
-        console.log(`✓ Product added`);
+      if (await addButtons.length > index) {
+        await addButtons[index].click();
+        console.log(`✅ Product added using fallback`);
         return true;
       }
       
-      console.log("No Add buttons found");
+      console.log("❌ No Add button found at specified index");
       return false;
       
     } catch (error) {
@@ -33,35 +58,16 @@ export class ProductsPage extends BasePage {
     }
   }
   
-  // CONTROLLED swipe left for different products (not too aggressive)
-  async swipeLeftLonger(): Promise<void> {
-    try {
-      const { width, height } = await browser.getWindowSize();
-      
-      // More controlled swipe - from 70% to 30% instead of 95% to 5%
-      await browser.action('pointer')
-        .move({ duration: 0, x: width * 0.7, y: height * 0.5 })
-        .down({ button: 0 })
-        .move({ duration: 1000, x: width * 0.3, y: height * 0.5 })
-        .up({ button: 0 })
-        .perform();
-      
-      console.log("✓ Performed controlled horizontal swipe");
-      
-      // Wait for UI to stabilize
-      await browser.pause(500);
-      
-    } catch (error) {
-      console.error("Failed to swipe products:", error);
-    }
+  // Add first available product
+  async addFirstAvailableProduct(): Promise<boolean> {
+    return await this.addProductByIndex(0);
   }
   
-  // CONTROLLED swipe up to reach different sub-category
-  async swipeUpLonger(): Promise<void> {
+  // Swipe up to find more products
+  async swipeUp(): Promise<void> {
     try {
       const { width, height } = await browser.getWindowSize();
       
-      // More controlled swipe - from 75% to 25% instead of 85% to 15%
       await browser.action('pointer')
         .move({ duration: 0, x: width * 0.5, y: height * 0.75 })
         .down({ button: 0 })
@@ -69,9 +75,7 @@ export class ProductsPage extends BasePage {
         .up({ button: 0 })
         .perform();
       
-      console.log("✓ Performed controlled vertical swipe");
-      
-      // Wait for UI to stabilize
+      console.log("✅ Swiped up");
       await browser.pause(500);
       
     } catch (error) {
@@ -79,32 +83,27 @@ export class ProductsPage extends BasePage {
     }
   }
   
-  // Multiple small swipes method as alternative
-  async multipleSmallSwipesLeft(count: number = 2): Promise<void> {
+  // Controlled swipe up
+  async swipeUpLonger(): Promise<void> {
     try {
       const { width, height } = await browser.getWindowSize();
       
-      console.log(`Performing ${count} small swipes left...`);
+      await browser.action('pointer')
+        .move({ duration: 0, x: width * 0.5, y: height * 0.8 })
+        .down({ button: 0 })
+        .move({ duration: 1200, x: width * 0.5, y: height * 0.2 })
+        .up({ button: 0 })
+        .perform();
       
-      for (let i = 0; i < count; i++) {
-        await browser.action('pointer')
-          .move({ duration: 0, x: width * 0.6, y: height * 0.5 })
-          .down({ button: 0 })
-          .move({ duration: 800, x: width * 0.4, y: height * 0.5 })
-          .up({ button: 0 })
-          .perform();
-        
-        await browser.pause(300);
-      }
-      
-      console.log("✓ Completed multiple small swipes");
+      console.log("✅ Performed longer swipe up");
+      await browser.pause(500);
       
     } catch (error) {
-      console.error("Failed multiple swipes:", error);
+      console.error("Failed to swipe up:", error);
     }
   }
   
-  // Click View Cart
+  // Click View Cart with multiple selectors
   async clickViewCart(): Promise<boolean> {
     try {
       console.log("Looking for View Cart button...");
@@ -112,15 +111,22 @@ export class ProductsPage extends BasePage {
       // Wait a bit for cart to update
       await browser.pause(1000);
       
-      const viewCartBtn = await $(this.viewCartButton);
+      const selectors = [
+        this.viewCartButton,
+        this.viewCartButtonAlt,
+        '//android.view.View[contains(@content-desc, "₹") and contains(@content-desc, "View Cart")]'
+      ];
       
-      if (await viewCartBtn.isExisting()) {
-        await viewCartBtn.click();
-        console.log("✓ View Cart clicked");
-        return true;
+      for (const selector of selectors) {
+        const element = await $(selector);
+        if (await element.isExisting()) {
+          await element.click();
+          console.log("✅ View Cart clicked");
+          return true;
+        }
       }
       
-      console.log("View Cart button not found");
+      console.log("❌ View Cart button not found");
       return false;
       
     } catch (error) {
@@ -128,4 +134,77 @@ export class ProductsPage extends BasePage {
       return false;
     }
   }
+  
+  // Get cart count from View Cart button
+  async getCartCount(): Promise<number> {
+    try {
+      const viewCartElement = await $(this.viewCartButton);
+      if (await viewCartElement.isExisting()) {
+        const contentDesc = await viewCartElement.getAttribute('content-desc');
+        // Extract number from "2\nCart Total\n₹680.41\nView Cart"
+        const match = contentDesc.match(/^(\d+)/);
+        if (match) {
+          return parseInt(match[1]);
+        }
+      }
+      return 0;
+    } catch (error) {
+      console.error("Failed to get cart count:", error);
+      return 0;
+    }
+  }
+  
+  // Check if products are loaded
+  async areProductsLoaded(): Promise<boolean> {
+    try {
+      // Check for any Add buttons
+      const addButtons = await $$('//android.view.View[@content-desc="Add"]');
+      return await addButtons.length > 0;
+    } catch (error) {
+      return false;
+    }
+  }
+  
+  // Wait for products to load
+  async waitForProducts(timeout: number = 5000): Promise<boolean> {
+    try {
+      const startTime = Date.now();
+      
+      while (Date.now() - startTime < timeout) {
+        if (await this.areProductsLoaded()) {
+          console.log("✅ Products loaded");
+          return true;
+        }
+        await browser.pause(500);
+      }
+      
+      console.log("❌ Products did not load in time");
+      return false;
+      
+    } catch (error) {
+      console.error("Error waiting for products:", error);
+      return false;
+    }
+  }
+  // Add this method to products.page.ts
+
+// Swipe up multiple times to find products
+async swipeUpToFindProducts(maxSwipes: number = 5): Promise<boolean> {
+  console.log(`🔍 Swiping up to find products (max ${maxSwipes} swipes)...`);
+  
+  for (let i = 1; i <= maxSwipes; i++) {
+    console.log(`📱 Swipe ${i}/${maxSwipes}`);
+    await this.swipeUp();
+    await browser.pause(1500);
+    
+    // Check if products are visible
+    if (await this.areProductsLoaded()) {
+      console.log(`✅ Products found after ${i} swipes!`);
+      return true;
+    }
+  }
+  
+  console.log(`❌ No products found after ${maxSwipes} swipes`);
+  return false;
+}
 }

@@ -13,7 +13,6 @@ export class LoginPage extends BasePage {
   }
   
   private get profileIconAlternative() {
-    // Try finding by position in navigation bar
     return '(//android.view.View[1]/android.view.View/android.widget.ImageView)[3]';
   }
 
@@ -52,9 +51,14 @@ export class LoginPage extends BasePage {
     return 'android=new UiSelector().description("Send OTP")';
   }
 
-  // OTP input (same as mobile input)
+  // OTP input
   private get otpInput() {
     return '//android.widget.EditText';
+  }
+
+  // OTP verification button (if exists)
+  private get verifyOTPButton() {
+    return '//android.widget.Button[@content-desc="Verify OTP" or @text="Verify OTP"]';
   }
 
   // Location selectors
@@ -70,8 +74,20 @@ export class LoginPage extends BasePage {
     return '//android.widget.Button[@content-desc="Try Another Location" or @text="Try Another Location"]';
   }
 
-  // Address selection - Updated for both HOME and WORK
-  // HOME address selectors
+  // Search bar selectors (NEW - for verification)
+  private get searchBar() {
+    return '//android.widget.ImageView[@content-desc="Search for \'milk\'"]';
+  }
+  
+  private get searchBarByAccessibility() {
+    return '~Search for \'milk\'';
+  }
+  
+  private get searchBarByUiSelector() {
+    return 'android=new UiSelector().description("Search for \'milk\'")';
+  }
+
+  // Address selectors
   private get homeAddressOption() {
     return '//android.view.View[@content-desc="HOME\nXWMC+JQX, Bargadi Magath, Uttar Pradesh, 226201"]';
   }
@@ -84,7 +100,6 @@ export class LoginPage extends BasePage {
     return '//*[contains(@content-desc, "HOME") and contains(@content-desc, "226201")]';
   }
 
-  // WORK address selectors - NEW
   private get workAddressOption() {
     return '//android.view.View[@content-desc="WORK 31, Raebareli, Uttar Pradesh, 229010"]';
   }
@@ -119,43 +134,124 @@ export class LoginPage extends BasePage {
     }
   }
 
-  // Verification elements
-  private get exploreTopCategories() {
-    return '//android.view.View[@content-desc="Explore Top Categories Top Products"]';
+  // Helper to extract OTP from SMS
+private async extractOTPFromSMS(): Promise<string | null> {
+  console.log("📱 Attempting to extract OTP from SMS...");
+
+  try {
+    // Get all available contexts (could be strings or objects depending on driver version)
+    const contexts: any[] = await browser.getContexts();
+
+    // Log all contexts for debugging
+    console.log("Available contexts:", contexts);
+
+    // Try to find the native app context safely
+    const nativeContext = contexts.find((ctx: any) => {
+      if (typeof ctx === 'string') {
+        return ctx.includes('NATIVE_APP');
+      } else if ('id' in ctx && typeof ctx.id === 'string') {
+        return ctx.id.includes('NATIVE_APP');
+      }
+      return false;
+    });
+
+    // Switch to native context if found
+    if (nativeContext) {
+      const contextId = typeof nativeContext === 'string' ? nativeContext : nativeContext.id;
+      await browser.switchContext(contextId);
+      console.log(`🔁 Switched to context: ${contextId}`);
+    } else {
+      console.warn("⚠️ Native context not found");
+    }
+
+    // OTP regex patterns
+    const otpPatterns = [
+      /(\d{6})/,
+      /OTP.*?(\d{6})/,
+      /code.*?(\d{6})/i,
+      /verification.*?(\d{6})/i
+    ];
+
+    // SMS or notification UI selectors
+    const notificationSelectors = [
+      '//android.widget.TextView[contains(@text, "OTP")]',
+      '//android.widget.TextView[contains(@text, "verification")]',
+      '//android.widget.TextView[contains(@text, "code")]'
+    ];
+
+    // Attempt OTP extraction
+    for (const selector of notificationSelectors) {
+      try {
+        const element = await $(selector);
+        if (await element.isExisting()) {
+          const text = await element.getText();
+          for (const pattern of otpPatterns) {
+            const match = text.match(pattern);
+            if (match && match[1]) {
+              console.log(`✅ OTP found: ${match[1]}`);
+              return match[1];
+            }
+          }
+        }
+      } catch (e) {
+        // Log and skip to next selector
+        console.log(`Skipping selector ${selector} due to error:`, e);
+      }
+    }
+
+    console.log("❌ OTP not found in SMS/notifications");
+    return null;
+  } catch (error) {
+    console.error("🔥 Error extracting OTP:", error);
+    return null;
   }
-  
-  private get exploreTopCategoriesAlternative() {
-    return '//android.view.View[contains(@content-desc, "Explore Top Categories")]';
+}
+
+
+  // Wait for OTP autofill or manual entry
+  private async waitForOTP(maxWaitTime: number = 30000): Promise<string | null> {
+    console.log("⏳ Waiting for OTP...");
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < maxWaitTime) {
+      try {
+        // Check if OTP input has value
+        const otpElement = await $(this.otpInput);
+        if (await otpElement.isExisting()) {
+          const value = await otpElement.getText();
+          if (value && value.length >= 6) {
+            console.log("✅ OTP auto-filled detected");
+            return value;
+          }
+        }
+
+        // Check if we've moved to next screen (OTP verified automatically)
+        if (await this.isOTPVerified()) {
+          console.log("✅ OTP verified automatically");
+          return "AUTO_VERIFIED";
+        }
+
+        await browser.pause(1000);
+      } catch (error) {
+        // Continue waiting
+      }
+    }
+    
+    return null;
   }
 
-  // Debug helper
-  private async debugCurrentScreen() {
-    console.log("\n=== DEBUG: Current Screen Analysis ===");
-    try {
-      // Get all ImageViews
-      const imageViews = await $$('//android.widget.ImageView');
-      console.log(`Found ${await imageViews.length} ImageView elements`);
-      
-      // Check for profile-related elements
-      const profileElements = await $$('//android.widget.ImageView[position()>=2 and position()<=4]');
-      for (let i = 0; i < Math.min(await profileElements.length, 3); i++) {
-        const element = profileElements[i];
-        const bounds = await element.getAttribute('bounds');
-        console.log(`ImageView[${i + 2}] bounds: ${bounds}`);
-      }
-      
-      // Check for address elements
-      const addressElements = await $$('//android.view.View[contains(@content-desc, "HOME") or contains(@content-desc, "WORK")]');
-      console.log(`Found ${await addressElements.length} address elements`);
-    } catch (error) {
-      console.error("Debug error:", error);
-    }
-    console.log("=== END DEBUG ===\n");
+  // Check if OTP is already verified
+  private async isOTPVerified(): Promise<boolean> {
+    // Check if we're on location screen or home screen
+    const locationWidget = await $(this.currentLocationWidget);
+    const searchBar = await $(this.searchBar);
+    
+    return (await locationWidget.isExisting()) || (await searchBar.isExisting());
   }
 
   // Step 1: Click Profile Icon
   async clickProfileIcon(): Promise<boolean> {
-    console.log("\nStep 1: Clicking Profile Icon...");
+    console.log("\n📍 Step 1: Clicking Profile Icon...");
     await browser.pause(2000);
     
     const selectors = [
@@ -174,19 +270,17 @@ export class LoginPage extends BasePage {
           return true;
         }
       } catch (error) {
-                // Continue to next selector
+        // Continue to next selector
       }
     }
     
-    // If failed, debug
-    await this.debugCurrentScreen();
     console.error("❌ Failed to find profile icon");
     return false;
   }
 
   // Step 2: Cancel Google Phone Picker
   async cancelGooglePhonePicker(): Promise<boolean> {
-    console.log("\nStep 2: Checking for Google Phone Picker...");
+    console.log("\n📍 Step 2: Checking for Google Phone Picker...");
     await browser.pause(2000);
     
     const selectors = [
@@ -210,12 +304,12 @@ export class LoginPage extends BasePage {
     }
     
     console.log("ℹ️ No Google Phone Picker found (might not appear)");
-    return true; // Not an error if it doesn't appear
+    return true;
   }
 
   // Step 3: Enter Mobile Number
   async enterMobileNumber(mobileNumber: string): Promise<boolean> {
-    console.log(`\nStep 3: Entering mobile number: ${mobileNumber}`);
+    console.log(`\n📍 Step 3: Entering mobile number: ${mobileNumber}`);
     
     try {
       const input = await $(this.mobileNumberInput);
@@ -238,7 +332,7 @@ export class LoginPage extends BasePage {
 
   // Step 4: Click Send OTP
   async clickSendOTP(): Promise<boolean> {
-    console.log("\nStep 4: Clicking Send OTP...");
+    console.log("\n📍 Step 4: Clicking Send OTP...");
     
     const selectors = [
       this.sendOTPButton,
@@ -252,6 +346,7 @@ export class LoginPage extends BasePage {
         if (await element.isExisting()) {
           await element.click();
           console.log("✅ Send OTP clicked");
+          console.log("📱 OTP will be sent to your mobile device");
           await browser.pause(3000);
           return true;
         }
@@ -264,13 +359,48 @@ export class LoginPage extends BasePage {
     return false;
   }
 
-  // Step 5: Enter OTP
-  async enterOTP(otp: string): Promise<boolean> {
-    console.log(`\nStep 5: Entering OTP: ${otp}`);
+  // Step 5: Handle OTP (Production version)
+  async handleOTPProduction(manualOTP?: string): Promise<boolean> {
+    console.log(`\n📍 Step 5: Handling OTP in production...`);
     
     try {
-      await browser.pause(2000); // Wait for OTP screen
+      // Wait for OTP screen to load
+      await browser.pause(2000);
       
+      // First, wait to see if OTP auto-fills
+      const autoFilledOTP = await this.waitForOTP(15000); // Wait 15 seconds for auto-fill
+      
+      if (autoFilledOTP === "AUTO_VERIFIED") {
+        console.log("✅ OTP was auto-verified");
+        return true;
+      }
+      
+      if (autoFilledOTP && autoFilledOTP !== "AUTO_VERIFIED") {
+        console.log("✅ OTP was auto-filled");
+        // Check if we need to click verify button
+        const verifyBtn = await $(this.verifyOTPButton);
+        if (await verifyBtn.isExisting()) {
+          await verifyBtn.click();
+          console.log("✅ Verify OTP button clicked");
+        }
+        await browser.pause(3000);
+        return true;
+      }
+      
+      // If no auto-fill, try to extract from SMS
+      console.log("⚠️ OTP not auto-filled, trying to extract from SMS...");
+      const extractedOTP = await this.extractOTPFromSMS();
+      
+      let otpToUse = extractedOTP || manualOTP;
+      
+      if (!otpToUse) {
+        console.log("⚠️ No OTP found automatically. Please provide OTP manually.");
+        // In production, you might want to wait for manual input
+        // or implement a more sophisticated SMS reading mechanism
+        return false;
+      }
+      
+      // Enter OTP manually
       const input = await $(this.otpInput);
       await input.waitForDisplayed({ timeout: 5000 });
       
@@ -278,31 +408,37 @@ export class LoginPage extends BasePage {
       await browser.pause(500);
       
       await input.clearValue();
-      await input.setValue(otp);
+      await input.setValue(otpToUse);
       await browser.pause(1000);
       
-      console.log("✅ OTP entered");
-      console.log("ℹ️ Waiting for auto-verification...");
-      await browser.pause(3000); // Wait for auto-redirect
+      console.log("✅ OTP entered manually");
       
+      // Check if verify button exists and click it
+      const verifyBtn = await $(this.verifyOTPButton);
+      if (await verifyBtn.isExisting()) {
+        await verifyBtn.click();
+        console.log("✅ Verify OTP button clicked");
+      }
+      
+      await browser.pause(3000);
       return true;
+      
     } catch (error) {
-      console.error("❌ Failed to enter OTP:", error);
+      console.error("❌ Failed to handle OTP:", error);
       return false;
     }
   }
 
-  // Step 6: Handle Location Not Serving (if appears)
+  // Step 6: Handle Location Not Serving
   async handleLocationNotServing(): Promise<boolean> {
-    console.log("\nStep 6: Checking for location service availability...");
+    console.log("\n📍 Step 6: Checking for location service availability...");
     await browser.pause(2000);
     
     try {
-      // Check if "Not Serving This Location" message appears
       const notServingElement = await $(this.locationNotServing);
       if (await notServingElement.isExisting()) {
         console.log("⚠️ Location not served - need to select different address");
-        
+              
         // Click on current location widget
         const locationWidget = await $(this.currentLocationWidget);
         if (await locationWidget.isExisting()) {
@@ -333,7 +469,7 @@ export class LoginPage extends BasePage {
 
   // Step 7: Click on Current Location
   async clickCurrentLocation(): Promise<boolean> {
-    console.log("\nStep 7: Clicking on current location...");
+    console.log("\n📍 Step 7: Clicking on current location...");
     await browser.pause(1500);
     
     try {
@@ -351,9 +487,9 @@ export class LoginPage extends BasePage {
     return false;
   }
 
-  // Step 8: Select Address (HOME or WORK) - UPDATED
+  // Step 8: Select Address
   async selectAddress(addressType: 'HOME' | 'WORK' = 'WORK'): Promise<boolean> {
-    console.log(`\nStep 8: Selecting ${addressType} address...`);
+    console.log(`\n📍 Step 8: Selecting ${addressType} address...`);
     await browser.pause(2000);
     
     const selectors = this.getAddressSelector(addressType);
@@ -364,7 +500,7 @@ export class LoginPage extends BasePage {
         if (await element.isExisting()) {
           await element.click();
           console.log(`✅ ${addressType} address selected`);
-          await browser.pause(3000); // Wait for redirect
+          await browser.pause(3000);
           return true;
         }
       } catch (error) {
@@ -372,50 +508,54 @@ export class LoginPage extends BasePage {
       }
     }
     
-    // Debug if failed
-    await this.debugCurrentScreen();
     console.error(`❌ Failed to select ${addressType} address`);
     return false;
   }
 
-  // Backward compatibility - keep old method
-  async selectHomeAddress(): Promise<boolean> {
-    return await this.selectAddress('HOME');
-  }
-
-  // New method for WORK address
-  async selectWorkAddress(): Promise<boolean> {
-    return await this.selectAddress('WORK');
-  }
-
-  // Step 9: Verify Home Page
+  // Step 9: Verify Home Page (Updated for search bar)
   async verifyHomePageAfterLogin(): Promise<boolean> {
-    console.log("\nStep 9: Verifying successful login and location selection...");
+    console.log("\n📍 Step 9: Verifying successful login and home page...");
     await browser.pause(2000);
     
     try {
-      const exploreElement = await $(this.exploreTopCategories);
-      const exploreAltElement = await $(this.exploreTopCategoriesAlternative);
+      // Check for search bar using multiple selectors
+      const searchSelectors = [
+        this.searchBar,
+        this.searchBarByAccessibility,
+        this.searchBarByUiSelector
+      ];
       
-      if (await exploreElement.isExisting() || await exploreAltElement.isExisting()) {
-        console.log("✅ 'Explore Top Categories' found - Login successful!");
-        return true;
+      for (const selector of searchSelectors) {
+        try {
+          const element = await $(selector);
+          if (await element.isExisting()) {
+            console.log("✅ Search bar found - Login successful!");
+            return true;
+          }
+        } catch (error) {
+          // Continue to next selector
+        }
       }
+      
+      console.log("❌ Search bar not found");
+      return false;
+      
     } catch (error) {
       console.error("❌ Home page verification failed:", error);
+      return false;
     }
-    
-    return false;
   }
 
-  // Complete Login Flow with Location Selection - UPDATED
-  async performCompleteLogin(
+  // Complete Production Login Flow
+  async performCompleteLoginProduction(
     mobileNumber: string, 
-    otp: string, 
+    manualOTP?: string,
     addressType: 'HOME' | 'WORK' = 'WORK'
   ): Promise<boolean> {
-    console.log("\n=== Starting Complete Login Flow ===");
-    console.log(`This includes: Login + ${addressType} Address Selection`);
+    console.log("\n🚀 === Starting Production Login Flow ===");
+    console.log(`📱 Mobile: ${mobileNumber}`);
+    console.log(`📍 Address Type: ${addressType}`);
+    console.log(`🔐 OTP Mode: ${manualOTP ? 'Manual' : 'Auto-detect'}`);
     
     try {
       // Phase 1: Login
@@ -443,11 +583,11 @@ export class LoginPage extends BasePage {
       }
       await TestHelpers.takeScreenshot('04-otp-sent');
       
-      // Step 5: Enter OTP
-      if (!await this.enterOTP(otp)) {
-        throw new Error("Failed to enter OTP");
+      // Step 5: Handle OTP (Production)
+      if (!await this.handleOTPProduction(manualOTP)) {
+        throw new Error("Failed to handle OTP");
       }
-      await TestHelpers.takeScreenshot('05-otp-entered');
+      await TestHelpers.takeScreenshot('05-otp-verified');
       
       // Phase 2: Location Selection
       console.log("\n--- Phase 2: Location Selection ---");
@@ -461,8 +601,7 @@ export class LoginPage extends BasePage {
       }
       await TestHelpers.takeScreenshot('06-location-clicked');
       
-      // Step 8: Select Address (HOME or WORK)
-      // Step 8: Select Address (HOME or WORK)
+      // Step 8: Select Address
       if (!await this.selectAddress(addressType)) {
         console.log(`ℹ️ ${addressType} address might already be selected`);
       }
@@ -474,8 +613,10 @@ export class LoginPage extends BasePage {
       
       if (success) {
         console.log("\n✅ ===========================================");
-        console.log("✅ LOGIN FLOW COMPLETED SUCCESSFULLY!");
-        console.log(`✅ User logged in and ${addressType} location selected`);
+        console.log("✅ PRODUCTION LOGIN FLOW COMPLETED!");
+        console.log(`✅ User logged in with mobile: ${mobileNumber}`);
+        console.log(`✅ ${addressType} location selected`);
+        console.log("✅ Home page with search bar verified");
         console.log("✅ ===========================================\n");
       } else {
         console.log("\n❌ Login flow completed but verification failed");
@@ -484,137 +625,123 @@ export class LoginPage extends BasePage {
       return success;
       
     } catch (error) {
-      console.error("\n❌ Login flow failed:", error);
+      console.error("\n❌ Production login flow failed:", error);
       await TestHelpers.takeScreenshot('login-error');
       return false;
     }
   }
 
-  // Additional helper methods for specific scenarios
-  
-  // Login with default WORK address
-  async loginWithWorkAddress(mobileNumber: string, otp: string): Promise<boolean> {
-    return await this.performCompleteLogin(mobileNumber, otp, 'WORK');
+  // Convenience methods for production
+  async loginProduction(mobileNumber: string, otp?: string): Promise<boolean> {
+    return await this.performCompleteLoginProduction(mobileNumber, otp, 'WORK');
   }
   
-  // Login with HOME address
-  async loginWithHomeAddress(mobileNumber: string, otp: string): Promise<boolean> {
-    return await this.performCompleteLogin(mobileNumber, otp, 'HOME');
+  async loginProductionWithHome(mobileNumber: string, otp?: string): Promise<boolean> {
+    return await this.performCompleteLoginProduction(mobileNumber, otp, 'HOME');
   }
   
-  // Quick login method (assumes WORK address)
-  async quickLogin(mobileNumber: string, otp: string): Promise<boolean> {
-    console.log("\n=== Quick Login (WORK Address) ===");
-    return await this.performCompleteLogin(mobileNumber, otp, 'WORK');
-  }
-  
-  // Method to switch address after login
-  async switchAddress(fromType: 'HOME' | 'WORK', toType: 'HOME' | 'WORK'): Promise<boolean> {
-    console.log(`\n=== Switching from ${fromType} to ${toType} address ===`);
-    
-    try {
-      // Click on current location widget
-      if (!await this.clickCurrentLocation()) {
-        throw new Error("Failed to open address selection");
-      }
-      
-      // Select the new address
-      if (!await this.selectAddress(toType)) {
-        throw new Error(`Failed to select ${toType} address`);
-      }
-      
-      console.log(`✅ Successfully switched to ${toType} address`);
-      return true;
-      
-    } catch (error) {
-      console.error("❌ Failed to switch address:", error);
-      return false;
-    }
-  }
-  
-  // Check if user is already logged in
+  // Check if user is already logged in (Updated)
   async isLoggedIn(): Promise<boolean> {
     try {
-      // Check for explore categories element
-      const exploreElement = await $(this.exploreTopCategories);
-      const exploreAltElement = await $(this.exploreTopCategoriesAlternative);
+      // Check for search bar
+      const searchSelectors = [
+        this.searchBar,
+        this.searchBarByAccessibility,
+        this.searchBarByUiSelector
+      ];
       
-      if (await exploreElement.isExisting() || await exploreAltElement.isExisting()) {
-        console.log("✅ User is already logged in");
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      return false;
-    }
-  }
-  
-  // Get current selected address type
-  async getCurrentAddressType(): Promise<'HOME' | 'WORK' | 'UNKNOWN'> {
-    try {
-      const locationWidget = await $(this.currentLocationWidget);
-      if (await locationWidget.isExisting()) {
-        const contentDesc = await locationWidget.getAttribute('content-desc');
-        
-        if (contentDesc.includes('Bargadi Magath') || contentDesc.includes('226201')) {
-          return 'HOME';
-        } else if (contentDesc.includes('Raebareli') || contentDesc.includes('229010')) {
-          return 'WORK';
+      for (const selector of searchSelectors) {
+        try {
+          const element = await $(selector);
+          if (await element.isExisting()) {
+            console.log("✅ User is already logged in");
+            return true;
+          }
+        } catch (error) {
+          // Continue
         }
       }
       
-      return 'UNKNOWN';
+      return false;
     } catch (error) {
-      return 'UNKNOWN';
-    }
-  }
-  
-  // Complete logout flow
-  async logout(): Promise<boolean> {
-    console.log("\n=== Logging out ===");
-    
-    try {
-      // Click profile icon
-      if (!await this.clickProfileIcon()) {
-        throw new Error("Failed to click profile icon");
-      }
-      
-      // TODO: Add logout button selectors and click logic
-      // This would depend on your app's logout flow
-      
-      console.log("✅ Logged out successfully");
-      return true;
-      
-    } catch (error) {
-      console.error("❌ Logout failed:", error);
       return false;
     }
   }
+  // Add this method to login.page.ts for cart login flow
+
+// Perform login from cart (only up to OTP entry, no location selection)
+async performCartLogin(mobileNumber: string, manualOTP?: string): Promise<boolean> {
+  console.log("\n🛒 === Starting Cart Login Flow ===");
+  console.log(`📱 Mobile: ${mobileNumber}`);
+  console.log(`🔐 OTP Mode: ${manualOTP ? 'Manual' : 'Auto-detect'}`);
+  
+  try {
+    // Step 1: Cancel Google Phone Picker if it appears
+    console.log("\n📍 Checking for Google Phone Picker...");
+    await this.cancelGooglePhonePicker();
+    
+    // Step 2: Enter Mobile Number
+    console.log("\n📍 Entering mobile number...");
+    const mobileEntered = await this.enterMobileNumber(mobileNumber);
+    if (!mobileEntered) {
+      throw new Error("Failed to enter mobile number");
+    }
+    await TestHelpers.takeScreenshot('cart-login-01-mobile');
+    
+    // Step 3: Click Send OTP
+    console.log("\n📍 Sending OTP...");
+    const otpSent = await this.clickSendOTP();
+    if (!otpSent) {
+      throw new Error("Failed to send OTP");
+    }
+    await TestHelpers.takeScreenshot('cart-login-02-otp-sent');
+    
+    // Step 4: Handle OTP
+    console.log("\n📍 Handling OTP...");
+    const otpHandled = await this.handleOTPProduction(manualOTP);
+    if (!otpHandled) {
+      throw new Error("Failed to handle OTP");
+    }
+    await TestHelpers.takeScreenshot('cart-login-03-otp-entered');
+    
+    console.log("\n✅ Login steps completed");
+    console.log("⏳ Waiting for auto-redirect to My Cart...");
+    
+    // Don't proceed with location selection - let it auto-redirect
+    return true;
+    
+  } catch (error) {
+    console.error("\n❌ Cart login failed:", error);
+    await TestHelpers.takeScreenshot('cart-login-error');
+    return false;
+  }
 }
 
-// Example usage in test files:
-/*
-// Basic login with WORK address (default)
-const loginPage = new LoginPage();
-await loginPage.performCompleteLogin('9876543210', '123456');
-
-// Login with HOME address
-await loginPage.performCompleteLogin('9876543210', '123456', 'HOME');
-
-// Or use convenience methods
-await loginPage.loginWithWorkAddress('9876543210', '123456');
-await loginPage.loginWithHomeAddress('9876543210', '123456');
-
-// Switch address after login
-await loginPage.switchAddress('WORK', 'HOME');
-
-// Check if already logged in
-if (!await loginPage.isLoggedIn()) {
-  await loginPage.quickLogin('9876543210', '123456');
+// Check if we're back on cart page after login
+async isBackOnCart(): Promise<boolean> {
+  try {
+    // Wait a bit for redirect
+    await browser.pause(2000);
+    
+    // Check for cart indicators
+    const cartIndicators = [
+      '//android.widget.TextView[contains(@text, "My Cart")]',
+      '//android.widget.Button[@content-desc="Select Address"]',
+      '//android.widget.Button[@content-desc="Place Order"]',
+      '//*[contains(@text, "Price Details")]'
+    ];
+    
+    for (const selector of cartIndicators) {
+      const element = await $(selector);
+      if (await element.isExisting()) {
+        console.log("✅ Confirmed: Back on My Cart page");
+        return true;
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    return false;
+  }
 }
-
-// Get current address type
-const currentAddress = await loginPage.getCurrentAddressType();
-console.log(`Current address: ${currentAddress}`);
-*/
+}

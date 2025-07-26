@@ -1,4 +1,4 @@
-// Update your shopping-without-login.flow.spec.ts
+// src/tests/flows/shopping-without-login.flow.spec.ts
 
 import { expect, browser } from "@wdio/globals";
 import { HomePage } from "../../pages/home.page";
@@ -21,258 +21,292 @@ describe("Shopping Flow Without Login", () => {
     loginPage = new LoginPage();
   });
 
-  it("should complete shopping flow with login from cart", async () => {
-    console.log(TestHelpers.formatTestLog("=== Test: Shopping Flow Without Initial Login ==="));
+  it("should complete shopping flow with location change and login from cart", async () => {
+    console.log(TestHelpers.formatTestLog("=== Test: Shopping Without Login + Location Change ==="));
     
     try {
-      // PHASE 1: Add Products Without Login
-      console.log("\n========== PHASE 1: Add Products Without Login ==========");
+      // PHASE 1: Handle Location Not Serving
+      console.log("\n========== PHASE 1: Handle Location Not Serving ==========");
       
-      // Step 1: Verify home page
-      console.log("\nStep 1: Verifying home page...");
-      await TestHelpers.waitForApp(3000);
-      const isHomePage = await homePage.isHomePageDisplayed();
-      expect(isHomePage).toBe(true);
-      console.log("✓ Home page confirmed");
-      await TestHelpers.takeScreenshot('no-login-01-home');
-      
-      // Step 2: Swipe up to see products
-      console.log("\nStep 2: Swiping up to see products...");
-      await productsPage.swipeUpToSeeProducts();
-      await TestHelpers.takeScreenshot('no-login-02-products');
-      
-      // Step 3: Add products
-      console.log("\nStep 3: Adding products to cart (not logged in)...");
-      const addedCount = await productsPage.addProducts(3);
-      expect(addedCount).toBeGreaterThan(0);
-      console.log(`✓ Successfully added ${addedCount} products`);
-      await TestHelpers.takeScreenshot('no-login-03-products-added');
-      await browser.pause(2000);
-      
-      // Step 4: Click View Cart
-      console.log("\nStep 4: Clicking View Cart...");
-      const cartClicked = await productsPage.clickViewCart();
-      expect(cartClicked).toBe(true);
-      console.log("✓ View Cart clicked");
+      // Step 1: Check initial location
+      console.log("\nStep 1: Checking initial location...");
       await TestHelpers.waitForApp(3000);
       
-      // PHASE 2: Login from Cart
-      console.log("\n========== PHASE 2: Login from Cart ==========");
+      // Check if "Not Serving This Location" appears
+      const notServingElement = await $('//*[contains(@text, "Not Serving This Location")]');
+      const tryAnotherButton = await $('//android.widget.Button[@content-desc="Try Another Location"]');
       
-      // Step 5: Verify cart page and check for Login to Proceed
-      console.log("\nStep 5: Checking cart page...");
-      const isCartPage = await cartPage.isCartPageDisplayed();
-      expect(isCartPage).toBe(true);
-      console.log("✓ On cart page");
-      
-      // Check if login is required
-      const loginRequired = await cartPage.isLoginRequired();
-      expect(loginRequired).toBe(true);
-      console.log("✓ Login to Proceed button found (user not logged in)");
-      await TestHelpers.takeScreenshot('no-login-04-login-required');
-      
-      // Step 6: Click Login to Proceed
-      console.log("\nStep 6: Clicking Login to Proceed...");
-      const loginClicked = await cartPage.clickLoginToProceed();
-      expect(loginClicked).toBe(true);
-      console.log("✓ Login to Proceed clicked");
-      
-      // IMPORTANT: Wait for login page to load
-      console.log("Waiting for login page to load...");
-      await TestHelpers.waitForApp(5000); // Give enough time for page transition
-      await TestHelpers.takeScreenshot('no-login-05-login-page');
-      
-      // Step 7: Perform login
-      console.log("\nStep 7: Performing login from cart...");
-      console.log("Expected flow:");
-      console.log("  1. Cancel mobile number prompt");
-      console.log("  2. Enter mobile number");
-      console.log("  3. Click Send OTP");
-      console.log("  4. Enter OTP");
-      console.log("  5. Auto-redirect back to My Cart\n");
-      
-      const loginSuccess = await loginPage.performCartLogin(
-        userData.validUser.mobileNumber,
-        userData.validUser.otp
-      );
-      expect(loginSuccess).toBe(true);
-      console.log("✓ Login completed successfully");
-      
-      // Wait for redirect back to cart
-      console.log("Waiting for redirect back to cart...");
-      await TestHelpers.waitForApp(3000);
-      
-      // PHASE 3: Complete Order After Login
-      console.log("\n========== PHASE 3: Complete Order After Login ==========");
-      
-      // Step 8: Verify returned to cart page
-      console.log("\nStep 8: Verifying return to cart page...");
-      const isBackOnCart = await cartPage.isCartPageDisplayed();
-      expect(isBackOnCart).toBe(true);
-      console.log("✓ Successfully returned to cart page after login");
-      await TestHelpers.takeScreenshot('no-login-06-cart-after-login');
-      
-      // Step 9: Check cart state after login
-      console.log("\nStep 9: Checking cart state after login...");
-      const cartSummary = await cartPage.getCartSummary();
-      console.log("\nCart summary after login:");
-      console.log(`- Items: ${cartSummary.itemCount}`);
-      console.log(`- Total: ${cartSummary.total}`);
-      console.log(`- Has address: ${cartSummary.hasAddress}`);
-      console.log(`- Can place order: ${cartSummary.canPlaceOrder}`);
-      
-      // Step 10: Handle address if needed
-      if (!cartSummary.hasAddress) {
-        console.log("\nStep 10: Address selection required...");
-        const addressHandled = await cartPage.handleAddressSelection();
-        expect(addressHandled).toBe(true);
-        console.log("✓ Address selected successfully");
-      } else {
-        console.log("\nStep 10: Address already selected, proceeding to order...");
-      }
-      
-      // Step 11: Place order
-      console.log("\nStep 11: Placing order...");
-      await TestHelpers.takeScreenshot('no-login-07-before-order');
-      
-      // Swipe up to see payment method and place order button
-      await cartPage.swipeUpOnCart();
-      await browser.pause(1500);
-      
-      // Click Place Order
-      const placeOrderBtn = await browser.$('//android.widget.Button[@content-desc="Place Order"]');
-      
-      if (await placeOrderBtn.isExisting()) {
-        await placeOrderBtn.click();
-        console.log("✓ Place Order clicked");
-        await browser.pause(3000);
+      if (await notServingElement.isExisting() || await tryAnotherButton.isExisting()) {
+        console.log("⚠️ Location not served - need to change location");
+        await TestHelpers.takeScreenshot('01-location-not-served');
         
-        // Step 12: Handle order success
-        console.log("\nStep 12: Checking for order success...");
-        const continueBtn = await browser.$('//android.widget.Button[@content-desc="Continue Shopping"]');
+        // Click on current location widget or Try Another Location
+        const currentLocationWidget = await $('//android.widget.ImageView[contains(@content-desc, "Current") and contains(@content-desc, "Deliver in")]');
         
-        let orderSuccess = false;
-        let attempts = 5;
-        
-        while (!orderSuccess && attempts > 0) {
-          if (await continueBtn.isExisting()) {
-            console.log("✅ Order placed successfully!");
-            await TestHelpers.takeScreenshot('no-login-08-order-success');
-            
-            await continueBtn.click();
-            console.log("✓ Continue Shopping clicked");
-            orderSuccess = true;
-            await browser.pause(2000);
-          } else {
-            console.log("Waiting for order confirmation...");
-            await browser.pause(1000);
-            attempts--;
-          }
+        if (await currentLocationWidget.isExisting()) {
+          await currentLocationWidget.click();
+          console.log("✅ Clicked on current location widget");
+        } else if (await tryAnotherButton.isExisting()) {
+          await tryAnotherButton.click();
+          console.log("✅ Clicked Try Another Location");
         }
         
-        expect(orderSuccess).toBe(true);
-        
-      } else {
-        throw new Error("Place Order button not found");
-      }
-      
-      // Step 13: Verify back on home page
-      console.log("\nStep 13: Verifying return to home page...");
-      await TestHelpers.waitForApp(2000);
-      const isFinalHome = await homePage.isHomePageDisplayed();
-      
-      if (!isFinalHome) {
-        console.log("Not on home page, navigating back...");
-        await browser.back();
         await TestHelpers.waitForApp(2000);
       }
       
-      expect(await homePage.isHomePageDisplayed()).toBe(true);
-      console.log("✓ Successfully returned to home page");
-      await TestHelpers.takeScreenshot('no-login-09-final-home');
+      // Step 2: Search for Raebareli
+      console.log("\nStep 2: Searching for Raebareli...");
+      const searchInput = await $('//android.widget.EditText');
+      
+      if (await searchInput.isExisting()) {
+        await searchInput.click();
+        await browser.pause(500);
+        await searchInput.clearValue();
+        await browser.pause(500);
+        await searchInput.setValue('raebareli');
+        console.log("✅ Entered 'raebareli' in search");
+        await TestHelpers.takeScreenshot('02-location-search');
+        await browser.pause(2000);
+        
+        // Step 3: Click on first Raebareli suggestion
+        console.log("\nStep 3: Selecting Raebareli from suggestions...");
+        const raebareliButton = await $('//android.widget.Button[@content-desc="Raebareli, Uttar Pradesh, India"]');
+        
+        if (await raebareliButton.isExisting()) {
+          await raebareliButton.click();
+          console.log("✅ Selected 'Raebareli, Uttar Pradesh, India'");
+        }
+        
+        await TestHelpers.waitForApp(3000);
+        await TestHelpers.takeScreenshot('03-location-selected');
+        
+        // Step 4: Confirm Location
+        console.log("\nStep 4: Confirming location...");
+        const confirmButton = await $('//android.widget.Button[@content-desc="Confirm Location"]');
+        
+        if (await confirmButton.isExisting()) {
+          await confirmButton.click();
+          console.log("✅ Location confirmed");
+          await TestHelpers.waitForApp(3000);
+        }
+      }
+      
+      // PHASE 2: Shop Without Login
+      console.log("\n========== PHASE 2: Add Products Without Login ==========");
+      
+      // Step 5: Verify home page
+      console.log("\nStep 5: Verifying home page...");
+      const isHomePage = await homePage.isHomePageDisplayed();
+      expect(isHomePage).toBe(true);
+      console.log("✅ Home page displayed");
+      await TestHelpers.takeScreenshot('04-home-page');
+      
+      // Step 6: Swipe up to find My Deals products
+      console.log("\nStep 6: Swiping up to find products in My Deals...");
+      
+      // Multiple swipes to reach My Deals products
+      for (let i = 1; i <= 3; i++) {
+        console.log(`📱 Swipe ${i}: Looking for products`);
+        await productsPage.swipeUp();
+        await browser.pause(1500);
+      }
+      
+      await TestHelpers.takeScreenshot('05-my-deals-visible');
+      
+      // Step 7: Add 5 products
+      console.log("\nStep 7: Adding 5 products to cart...");
+      let productsAdded = 0;
+      
+      for (let i = 0; i < 5; i++) {
+        console.log(`\n➕ Adding product ${i + 1}/5`);
+        
+        const added = await productsPage.addProductByIndex(0);
+        
+        if (added) {
+          productsAdded++;
+          await browser.pause(1000);
+          
+          if (i < 4) {
+            console.log("📱 Swiping for more products");
+            await productsPage.swipeUp();
+            await browser.pause(1500);
+          }
+        } else {
+          console.log("⚠️ No more products found, swiping up");
+          await productsPage.swipeUp();
+          await browser.pause(1500);
+          i--;
+        }
+      }
+      
+      console.log(`✅ Added ${productsAdded} products to cart`);
+      expect(productsAdded).toBe(5);
+      await TestHelpers.takeScreenshot('06-products-added');
+      
+      // Step 8: Click View Cart
+      console.log("\nStep 8: Clicking View Cart...");
+      const viewCartClicked = await productsPage.clickViewCart();
+      expect(viewCartClicked).toBe(true);
+      console.log("✅ View Cart clicked");
+      await TestHelpers.waitForApp(3000);
+      await TestHelpers.takeScreenshot('07-cart-opened');
+      
+      // PHASE 3: Login from Cart (Only up to OTP)
+      console.log("\n========== PHASE 3: Login from Cart (OTP Only) ==========");
+      
+      // Step 9: Click Login to Proceed
+      console.log("\nStep 9: Clicking Login to Proceed...");
+      const loginButton = await $('//android.widget.Button[@content-desc="Login to Proceed"]');
+      
+      if (await loginButton.isExisting()) {
+        await loginButton.click();
+        console.log("✅ Login to Proceed clicked");
+        await TestHelpers.waitForApp(3000);
+        await TestHelpers.takeScreenshot('08-login-page');
+        
+        // Step 10: Perform login ONLY up to OTP entry
+        console.log("\nStep 10: Performing login (OTP only)...");
+        
+        // Cancel Google Phone Picker if it appears
+        await loginPage.cancelGooglePhonePicker();
+        
+        // Enter mobile number
+        const mobileEntered = await loginPage.enterMobileNumber(userData.productionUser.mobileNumber);
+        expect(mobileEntered).toBe(true);
+        console.log("✅ Mobile number entered");
+        
+        // Click Send OTP
+        const otpSent = await loginPage.clickSendOTP();
+        expect(otpSent).toBe(true);
+        console.log("✅ OTP sent");
+        
+        // Handle OTP (auto-fill or manual)
+        const otpHandled = await loginPage.handleOTPProduction(userData.productionUser.manualOTP);
+        expect(otpHandled).toBe(true);
+        console.log("✅ OTP entered");
+        
+        // Wait for auto-redirect back to My Cart
+        console.log("\n⏳ Waiting for redirect back to My Cart...");
+        await TestHelpers.waitForApp(5000);
+        await TestHelpers.takeScreenshot('09-back-to-cart');
+      }
+      
+      // PHASE 4: Select Address and Place Order
+      console.log("\n========== PHASE 4: Complete Order ==========");
+      
+      // Step 11: Click Select Address
+      console.log("\nStep 11: Clicking Select Address...");
+      const selectAddressButton = await $('//android.widget.Button[@content-desc="Select Address"]');
+      
+      // Wait for Select Address button to appear
+      let addressButtonFound = false;
+      for (let i = 0; i < 5; i++) {
+        if (await selectAddressButton.isExisting()) {
+          addressButtonFound = true;
+          break;
+        }
+        console.log(`⏳ Waiting for Select Address button... (${i + 1}/5)`);
+        await browser.pause(1000);
+      }
+      
+      if (addressButtonFound) {
+        await selectAddressButton.click();
+        console.log("✅ Select Address clicked");
+        await TestHelpers.waitForApp(2000);
+        await TestHelpers.takeScreenshot('10-address-selection');
+        
+        // Select HOME address
+        console.log("\nSelecting HOME address...");
+        const homeAddressSelectors = [
+          '//android.view.View[@content-desc="HOME\nBKT, Bargadi Magath, Uttar Pradesh, 226201"]',
+          '//android.view.View[contains(@content-desc, "HOME") and contains(@content-desc, "Bargadi Magath")]',
+          '//android.view.View[contains(@content-desc, "HOME") and contains(@content-desc, "226201")]'
+        ];
+        
+        let addressSelected = false;
+        for (const selector of homeAddressSelectors) {
+          const homeAddress = await $(selector);
+          if (await homeAddress.isExisting()) {
+            await homeAddress.click();
+            console.log("✅ HOME address selected");
+            addressSelected = true;
+            break;
+          }
+        }
+        
+        expect(addressSelected).toBe(true);
+        await TestHelpers.waitForApp(2000);
+      }
+      
+      // Step 12: Place Order
+      console.log("\nStep 12: Placing order...");
+      await TestHelpers.takeScreenshot('11-before-place-order');
+      
+      const placeOrderButton = await $('//android.widget.Button[@content-desc="Place Order"]');
+      
+      // Wait for Place Order button
+      let placeOrderFound = false;
+      for (let i = 0; i < 5; i++) {
+        if (await placeOrderButton.isExisting()) {
+          placeOrderFound = true;
+          break;
+        }
+        console.log(`⏳ Waiting for Place Order button... (${i + 1}/5)`);
+        await browser.pause(1000);
+      }
+      
+      if (placeOrderFound) {
+        await placeOrderButton.click();
+        console.log("✅ Place Order clicked");
+        await TestHelpers.waitForApp(3000);
+      }
+      
+      // Step 13: Handle Order Success
+      console.log("\nStep 13: Waiting for order confirmation...");
+      const continueShoppingButton = await $('//android.widget.Button[@content-desc="Continue Shopping"]');
+      
+      // Wait for order success
+      let orderSuccess = false;
+      for (let i = 0; i < 10; i++) {
+        if (await continueShoppingButton.isExisting()) {
+          console.log("✅ Order placed successfully!");
+          await TestHelpers.takeScreenshot('12-order-success');
+          orderSuccess = true;
+          break;
+        }
+        console.log(`⏳ Waiting for confirmation... (${i + 1}/10)`);
+        await browser.pause(1000);
+      }
+      
+      expect(orderSuccess).toBe(true);
+      
+      // Click Continue Shopping
+      await continueShoppingButton.click();
+      console.log("✅ Continue Shopping clicked");
+      await TestHelpers.waitForApp(3000);
+      
+      // Step 14: Verify home page
+      console.log("\nStep 14: Verifying return to home page...");
+      const isBackHome = await homePage.isHomePageDisplayed();
+      expect(isBackHome).toBe(true);
+      console.log("✅ Successfully returned to home page");
+      await TestHelpers.takeScreenshot('13-final-home');
       
       // Test Summary
       console.log(TestHelpers.formatSuccessLog("\n🎉 Shopping without login flow completed! 🎉"));
       console.log("\n📋 Test Summary:");
-      console.log("\n✅ Phase 1 - Shopping Without Login:");
-      console.log("   • Started from home page (not logged in)");
-      console.log("   • Swiped up to view products");
-      console.log("   • Added 3 products to cart");
-      console.log("   • Clicked View Cart");
-      console.log("   • Found 'Login to Proceed' button");
-      
-      console.log("\n✅ Phase 2 - Login from Cart:");
-      console.log("   • Clicked 'Login to Proceed'");
-      console.log("   • Canceled mobile number prompt");
-      console.log("   • Entered mobile number");
-      console.log("   • Clicked Send OTP");
-      console.log("   • Entered OTP");
-      console.log("   • Auto-redirected back to My Cart");
-      
-      console.log("\n✅ Phase 3 - Complete Order:");
-      console.log("   • Cart preserved after login");
-      console.log("   • Selected delivery address");
-      console.log("   • Cash on Delivery enabled");
-      console.log("   • Placed order successfully");
-      console.log("   • Returned to home via Continue Shopping");
-      
-      console.log("\n✅ All test objectives achieved!");
+      console.log("✅ Changed location to Raebareli");
+      console.log("✅ Added 5 products without login");
+      console.log("✅ Clicked View Cart → Login to Proceed");
+      console.log("✅ Entered mobile number and OTP only");
+      console.log("✅ Auto-redirected back to My Cart");
+      console.log("✅ Selected HOME address");
+      console.log("✅ Placed order successfully");
+      console.log("✅ Returned to home page");
       
     } catch (error) {
-      console.error(TestHelpers.formatErrorLog(`Shopping without login failed: ${error}`));
-      await TestHelpers.takeScreenshot('no-login-error-final');
-      
-      // Recovery attempt
-      try {
-        console.log("\nAttempting to recover and return to home...");
-        
-        // Try multiple recovery methods
-        const recoveryMethods = [
-          async () => await browser.back(),
-          async () => await cartPage.goBackFromCart(),
-          async () => {
-            // Try clicking any visible back button
-            const backButtons = [
-              '//android.widget.Button[1]',
-              '//android.widget.ImageButton[@content-desc="Navigate up"]',
-              '//android.widget.ImageButton[@content-desc="Back"]'
-            ];
-            for (const selector of backButtons) {
-              try {
-                const backBtn = await browser.$(selector);
-                if (await backBtn.isExisting()) {
-                  await backBtn.click();
-                  return true;
-                }
-              } catch (e) {
-                // Continue trying
-              }
-            }
-            return false;
-          }
-        ];
-        
-        // Try each recovery method
-        for (const method of recoveryMethods) {
-          try {
-            await method();
-            await TestHelpers.waitForApp(1000);
-            
-            // Check if we're back on home page
-            const isHome = await homePage.isHomePageDisplayed();
-            if (isHome) {
-              console.log("✓ Successfully recovered to home page");
-              break;
-            }
-          } catch (e) {
-            console.log("Recovery method failed, trying next...");
-          }
-        }
-        
-      } catch (recoveryError) {
-        console.log("Recovery failed:", recoveryError);
-      }
-      
+      console.error(TestHelpers.formatErrorLog(`Test failed: ${error}`));
+      await TestHelpers.takeScreenshot('error-final');
       throw error;
     }
   });

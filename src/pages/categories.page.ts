@@ -126,6 +126,28 @@ private getCategorySelector(categoryName: string) {
   private getAddButtonByIndex(index: number) {
     return `(//android.view.View[@content-desc="Add"])[${index}]`;
   }
+
+   private get myDealsCategory() {
+    return '//android.widget.ImageView[@content-desc="My Deals"]';
+  }
+  
+  private get myDealsCategoryAlt() {
+    return '~My Deals';
+  }
+  
+  private get myDealsCategoryUiSelector() {
+    return 'android=new UiSelector().description("My Deals")';
+  }
+
+
+  
+  private getCategoryAccessibilitySelector(categoryName: string): string {
+    return `~${categoryName}`;
+  }
+  
+  private getCategoryUiSelector(categoryName: string): string {
+    return `android=new UiSelector().description("${categoryName}")`;
+  }
 // Method to click View Cart from Categories page
   async clickViewCartFromCategories(): Promise<boolean> {
     console.log("\n📱 Looking for View Cart button on Categories page...");
@@ -1201,37 +1223,7 @@ async scrollToEnergyHealthSafe(): Promise<void> {
   // }
   
  // Check if a category is visible
-  async isCategoryVisible(categoryName: string): Promise<boolean> {
-    try {
-      const categoryElement = await $(this.getCategorySelector(categoryName));
-      return await categoryElement.isExisting();
-    } catch (error) {
-      return false;
-    }
-  }
-  
-  // Click on a category
-  async clickCategory(categoryName: string): Promise<boolean> {
-    try {
-      console.log(`Clicking on ${categoryName} category...`);
-      const categorySelector = this.getCategorySelector(categoryName);
-      
-      // Don't wait for element if it's not visible yet
-      const categoryElement = await $(categorySelector);
-      if (await categoryElement.isExisting()) {
-        await categoryElement.click();
-        console.log(`✓ ${categoryName} category clicked`);
-        return true;
-      }
-      
-      console.log(`${categoryName} category not found`);
-      return false;
-      
-    } catch (error) {
-      console.error(`Failed to click ${categoryName} category:`, error);
-      return false;
-    }
-  }
+
   
   // Swipe left on categories bar
   async swipeLeftOnCategories(): Promise<void> {
@@ -1291,7 +1283,87 @@ async scrollToEnergyHealthSafe(): Promise<void> {
     console.log(`${categoryName} category not found after ${maxSwipes} swipes`);
     return false;
   }
+
+  // Click My Deals
+  async clickMyDeals(): Promise<boolean> {
+    try {
+      console.log("Clicking on My Deals...");
+      
+      const selectors = [
+        this.myDealsCategory,
+        this.myDealsCategoryAlt,
+        this.myDealsCategoryUiSelector
+      ];
+      
+      for (const selector of selectors) {
+        const element = await $(selector);
+        if (await element.isExisting()) {
+          await element.click();
+          console.log("✅ My Deals clicked");
+                    return true;
+        }
+      }
+      
+      console.log("❌ My Deals not found");
+      return false;
+      
+    } catch (error) {
+      console.error("Failed to click My Deals:", error);
+      return false;
+    }
+  }
+  
+  // Click on a category with multiple selectors
+  async clickCategory(categoryName: string): Promise<boolean> {
+    try {
+      console.log(`Clicking on ${categoryName} category...`);
+      
+      const selectors = [
+        this.getCategorySelector(categoryName),
+        this.getCategoryAccessibilitySelector(categoryName),
+        this.getCategoryUiSelector(categoryName)
+      ];
+      
+      for (const selector of selectors) {
+        const element = await $(selector);
+        if (await element.isExisting()) {
+          await element.click();
+          console.log(`✅ ${categoryName} category clicked`);
+          return true;
+        }
+      }
+      
+      console.log(`❌ ${categoryName} category not found`);
+      return false;
+      
+    } catch (error) {
+      console.error(`Failed to click ${categoryName} category:`, error);
+      return false;
+    }
+  }
+  
+  // Check if a category is visible
+  async isCategoryVisible(categoryName: string): Promise<boolean> {
+    try {
+      const selectors = [
+        this.getCategorySelector(categoryName),
+        this.getCategoryAccessibilitySelector(categoryName)
+      ];
+      
+      for (const selector of selectors) {
+        const element = await $(selector);
+        if (await element.isExisting()) {
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      return false;
+    }
+  }
 }
+
 
 
 
